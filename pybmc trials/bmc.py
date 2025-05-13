@@ -53,12 +53,12 @@ class BayesianModelCombination:
 
         self.models_truth = models_truth # Models and truth values of the BMC dataset
 
-        self.models = models_truth.remove('truth') # This is just the set of models without experimental data
+        self.models = [model for model in models_truth if model != 'truth'] # This is just the set of models without experimental data
 
         self.weights = weights if weights is not None else None # Weights of the models 
 
     def train(self, iterations, b_mean_prior, b_mean_cov, nu0_chosen, sigma20_chosen):
-        # # These will be required parameters that we have to specify for our Gibbs sampling algorithm
+      # # These will be required parameters that we have to specify for our Gibbs sampling algorithm
         # required_params = ['b_mean_prior', 'b_mean_cov', 'nu0_chosen', 'sigma20_chosen']
         # if not all(param in kwargs for param in required_params):
         #     raise ValueError(f"Missing parameters for the gibbs sampling algorithm: {required_params}")
@@ -69,7 +69,7 @@ class BayesianModelCombination:
         # nu0_chosen = kwargs['nu0_chosen']
         # sigma20_chosen = kwargs['sigma20_chosen']
 
-        # The Gibbs sampling algorithm should take in inputs that is defined from the orthogonalize method
+        # The Gibbs sampling algorithm should take in inputs that is defined from the orthogonalize method  
         self.samples = self.gibbs_sampler(self.centered_experiment_train, self.U_hat, iterations, [b_mean_prior, b_mean_cov, nu0_chosen, sigma20_chosen])
 
     
@@ -87,6 +87,23 @@ class BayesianModelCombination:
         filtered_model_predictions = self.filtered_models_output_extraction(Z_range, N_range)
 
         lower, median, upper = self.rndm_m_random_calculator(filtered_model_predictions, self.samples)
+
+        return median
+    
+    def predict_faster(self, N_range, Z_range):
+        # The input of this method should just be the isotopes that you want to predict and the output should be the mean predictions
+
+        # This code will help us to calculate the weight of the individual models from the weight of the principal components
+        model_weights = []
+        for beta in self.samples:
+            model_weights.append(np.dot(beta[:-1], self.Vt_hat) + np.full(len(self.Vt_hat[0]) , 1/len(self.Vt_hat[0])))
+        model_weights = np.array(model_weights)
+        # The weights of corresponding models are now updated
+        self.weights = model_weights 
+
+        filtered_model_predictions = self.filtered_models_output_extraction(Z_range, N_range)
+
+        lower, median, upper = self.rndm_m_random_calculator_faster(filtered_model_predictions, self.samples)
 
         return median
 
@@ -115,6 +132,39 @@ class BayesianModelCombination:
         lower_radius = np.percentile(rndm_m, 2.5, axis = 0)
         median_radius = np.percentile(rndm_m, 50, axis = 0)
         upper_radius = np.percentile(rndm_m, 97.5, axis = 0)
+
+        return [lower_radius, median_radius, upper_radius]
+    
+    def rndm_m_random_calculator_faster(self, filtered_model_predictions, samples):
+        """
+        Efficient calculation of random samples of model predictions and their credible intervals.
+        Assumes Gaussian noise with diagonal covariance.
+        """
+        np.random.seed(142858)
+        rng = np.random.default_rng()
+        
+        theta_rand_selected = rng.choice(samples, 10000, replace=False)
+
+        # Extract betas and noise std deviations
+        betas = theta_rand_selected[:, :-1]  # shape: (10000, num_models - 1)
+        noise_stds = theta_rand_selected[:, -1]  # shape: (10000,)
+
+        # Compute model weights: shape (10000, num_models)
+        default_weights = np.full(self.Vt_hat.shape[1], 1 / self.Vt_hat.shape[1])
+        model_weights_random = betas @ self.Vt_hat + default_weights  # broadcasting default_weights
+
+        # Generate noiseless predictions: shape (10000, num_data_points)
+        yvals_rand_radius = model_weights_random @ filtered_model_predictions.T  # dot product
+
+        # Add Gaussian noise with std = noise_stds (assume diagonal covariance)
+        # We'll use broadcasting: noise_stds[:, None] * standard normal noise
+        noise = rng.standard_normal(yvals_rand_radius.shape) * noise_stds[:, None]
+        rndm_m = yvals_rand_radius + noise
+
+        # Compute credible intervals
+        lower_radius = np.percentile(rndm_m, 2.5, axis=0)
+        median_radius = np.percentile(rndm_m, 50, axis=0)
+        upper_radius = np.percentile(rndm_m, 97.5, axis=0)
 
         return [lower_radius, median_radius, upper_radius]
     
