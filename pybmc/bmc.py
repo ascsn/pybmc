@@ -92,20 +92,49 @@ class BayesianModelCombination:
             - 'b_mean_cov': (np.ndarray) Prior covariance matrix (default diag(S_hat²))
             - 'nu0_chosen': (float) Degrees of freedom for variance prior (default 1.0)
             - 'sigma20_chosen': (float) Prior variance (default 0.02)
+            - 'sampler': (str) 'Gibbs_sampling' or 'simplex' (default 'Gibbs_sampling')
+            - 'burn': (int) Burn-in iterations for simplex sampler (default 10000)
+            - 'stepsize': (float) Proposal step size for simplex sampler (default 0.001)
         """
-        if training_options is None:
-            training_options = {}
 
-        iterations = training_options.get('iterations', 50000)
-        num_components = self.U_hat.shape[1]
+        # functions defined so that whenever a key not specified, we print out the default value for users
+        def get_option(key, default):
+            if key not in training_options:
+                print(f"[INFO] Using default value for '{key}': {default}")
+            return training_options.get(key, default)
+
+        iterations = get_option('iterations', 50000)
+        sampler = get_option('sampler', 'gibbs_sampling')
+        burn = get_option('burn', 10000)
+        stepsize = get_option('stepsize', 0.001)
+
         S_hat = self.S_hat
+        num_components = self.U_hat.shape[1]
 
-        b_mean_prior = training_options.get('b_mean_prior', np.zeros(num_components))
-        b_mean_cov = training_options.get('b_mean_cov', np.diag(S_hat**2))
-        nu0_chosen = training_options.get('nu0_chosen', 1.0)
-        sigma20_chosen = training_options.get('sigma20_chosen', 0.02)
+        b_mean_prior = get_option('b_mean_prior', np.zeros(num_components))
+        b_mean_cov = get_option('b_mean_cov', np.diag(S_hat**2))
+        nu0_chosen = get_option('nu0_chosen', 1.0)
+        sigma20_chosen = get_option('sigma20_chosen', 0.02)
 
-        self.samples = gibbs_sampler(self.centered_experiment_train, self.U_hat, iterations, [b_mean_prior, b_mean_cov, nu0_chosen, sigma20_chosen])
+        if sampler == 'simplex':
+            self.samples = gibbs_sampler_simplex(
+                self.centered_experiment_train,
+                self.U_hat,
+                self.Vt_hat,
+                self.S_hat,
+                iterations,
+                [nu0_chosen, sigma20_chosen],  # Note: no b_mean_prior/b_mean_cov needed
+                burn = burn,
+                stepsize = stepsize
+            ) 
+        else:
+            self.samples = gibbs_sampler(
+                self.centered_experiment_train,
+                self.U_hat,
+                iterations,
+                [b_mean_prior, b_mean_cov, nu0_chosen, sigma20_chosen]
+            )
+
 
     
     def predict(self, X):
@@ -228,7 +257,67 @@ class BayesianModelCombination:
         return coverage(np.arange(0, 101, 5), rndm_m, df, truth_column=self.truth_column_name)
 
 
+    def predict3(self, property):
+        """
+        Predict a specified property using the model weights learned during training.
+        This version slices both Vt_hat and betas to match the available models.
 
+        :param property: The property name to predict (e.g., 'ChRad').
+        :return:
+            - rndm_m: array of shape (n_samples, n_points), full posterior draws
+            - lower_df: DataFrame with columns domain_keys + ['Predicted_Lower']
+            - median_df: DataFrame with columns domain_keys + ['Predicted_Median']
+            - upper_df: DataFrame with columns domain_keys + ['Predicted_Upper']
+        """
+        if property not in self.data_dict:
+            raise KeyError(f"Property '{property}' not found in data_dict.")
 
+        df = self.data_dict[property].copy()
 
+        # Infer domain and model columns
+        full_model_cols = self.models
+        domain_keys = [col for col in df.columns if col not in full_model_cols and col != self.truth_column_name]
 
+        # Determine which models are present
+        available_models = [m for m in full_model_cols if m in df.columns]
+
+        if len(available_models) == 0:
+            raise ValueError("No available trained models are present in prediction DataFrame.")
+
+        # Filter predictions and model weights
+        model_preds = df[available_models].values
+        domain_df = df[domain_keys].reset_index(drop=True)
+
+        # Find indices of available models in training order
+        model_indices = [self.models.index(m) for m in available_models]
+
+        # Reduce Vt_hat to match available models
+        Vt_hat_reduced = self.Vt_hat[:, model_indices]
+
+        # Sample theta from training samples
+        rng = np.random.default_rng()
+        theta_rand_selected = rng.choice(self.samples, 10000, replace=False)
+
+        # Slice betas to match reduced Vt_hat
+        betas_full = theta_rand_selected[:, :-1]  # shape: (10000, num_components)
+        num_components_used = Vt_hat_reduced.shape[0]
+        betas_reduced = betas_full[:, :num_components_used]
+
+        noise_stds = theta_rand_selected[:, -1][:, None]  # shape: (10000, 1)
+        sliced_samples = np.hstack([betas_reduced, noise_stds])  # shape: (10000, num_components_used + 1)
+
+        # Now call rndm_m_random_calculator with sliced samples:
+        rndm_m, (lower, median, upper) = rndm_m_random_calculator(
+            model_preds, sliced_samples, Vt_hat_reduced
+        )
+
+        lower_df = domain_df.copy()
+        lower_df["Predicted_Lower"] = lower
+
+        median_df = domain_df.copy()
+        median_df["Predicted_Median"] = median
+
+        upper_df = domain_df.copy()
+        upper_df["Predicted_Upper"] = upper
+
+        return rndm_m, lower_df, median_df, upper_df
