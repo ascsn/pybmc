@@ -1,0 +1,79 @@
+:root {
+  --md-primary-fg-color: #3f51b5;
+  --md-primary-fg-color--light: #757de8;
+  --md-primary-fg-color--dark: #002984;
+}
+
+.md-header {
+  box-shadow: 0 0 0.2rem rgba(0,0,0,.1), 0 0.2rem 0.4rem rgba(0,0,0,.2);
+}
+
+.md-main__inner {
+  margin-top: 1.5rem;
+}
+
+.md-typeset h1 {
+  font-weight: bold;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.3em;
+}
+
+.md-typeset h2 {
+  font-weight: 600;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.2em;
+}
+
+.md-typeset .admonition {
+  box-shadow: 0 2px 2px 0 rgba(0,0,0,.14), 0 1px 5px 0 rgba(0,0,0,.12), 0 3px 1px -2px rgba(0,0,0,.2);
+  border-left: 0.2rem solid var(--md-primary-fg-color);
+}
+
+/* Inline code formatting */
+.md-typeset code {
+  background-color: #f0f0f0;
+  color: #e53935;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+}
+
+/* Code block styling - Light mode */
+.md-typeset pre {
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  border-left: 4px solid var(--md-primary-fg-color);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.md-typeset pre > code {
+  background-color: transparent;
+  padding: 0;
+  color: #333;
+}
+
+/* Code block styling - Dark mode */
+[data-md-color-scheme="slate"] .md-typeset pre {
+  background-color: #2d2d2d;
+  border-left: 4px solid var(--md-primary-fg-color);
+}
+
+[data-md-color-scheme="slate"] .md-typeset code {
+  background-color: #2d2d2d;
+  color: #ff7043;
+}
+
+/* Syntax highlighting enhancements */
+.highlight .n { color: #0d47a1; } /* Name */
+.highlight .p { color: #616161; } /* Punctuation */
+.highlight .o { color: #e65100; } /* Operator */
+.highlight .k, .highlight .kd { color: #7b1fa2; } /* Keyword */
+.highlight .s, .highlight .s1, .highlight .s2 { color: #2e7d32; } /* String */
+.highlight .c, .highlight .c1 { color: #757575; font-style: italic; } /* Comment */
+
+/* Dark mode syntax highlighting */
+[data-md-color-scheme="slate"] .highlight .n { color: #90caf9; }
+[data-md-color-scheme="slate"] .highlight .p { color: #b0bec5; }
+[data-md-color-scheme="slate"] .highlight .o { color: #ffab91; }
+[data-md-color-scheme="slate"] .highlight .k, [data-md-color-scheme="slate"] .highlight .kd { color: #ce93d8; }
+[data-md-color-scheme="slate"] .highlight .s, [data-md-color-scheme="slate"] .highlight .s1, [data-md-color-scheme="slate"] .highlight .s2 { color: #a5d6a7; }
+[data-md-color-scheme="slate"] .highlight .c, [data-md-color-scheme="slate"] .highlight .c1 { color: #78909c; }
