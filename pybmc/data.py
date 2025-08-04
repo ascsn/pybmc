@@ -254,7 +254,7 @@ class Dataset:
         val_data = indexable_data.iloc[val_idx]
         test_data = indexable_data.iloc[test_idx]
         
-        return train_data, val_data, test_data
+        return train_data, val_data, test_data, train_idx, val_idx, test_idx
 
 
     def get_subset(self, property_name, filters=None, models_to_include=None):

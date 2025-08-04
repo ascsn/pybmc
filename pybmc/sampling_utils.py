@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import corner
 
 def coverage(percentiles, rndm_m, models_output, truth_column):
     """
@@ -51,7 +53,7 @@ def rndm_m_random_calculator(filtered_model_predictions, samples, Vt_hat):
         theta_rand_selected = rng.choice(samples, 10000, replace=False)
 
         # Extract betas and noise std deviations
-        betas = theta_rand_selected[:, :-1]  # shape: (10000, num_models - 1)
+        betas = theta_rand_selected[:, :-1]  # shape: (10000, principle_components_kept)
         noise_stds = theta_rand_selected[:, -1]  # shape: (10000,)
 
         # Compute model weights: shape (10000, num_models)
@@ -72,5 +74,3 @@ def rndm_m_random_calculator(filtered_model_predictions, samples, Vt_hat):
         upper_radius = np.percentile(rndm_m, 97.5, axis=0)
 
         return rndm_m, [lower_radius, median_radius, upper_radius]
-
-

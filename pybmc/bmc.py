@@ -1,11 +1,12 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as pltimport 
 from sklearn.model_selection import train_test_split
 import os
-from .inference_utils import gibbs_sampler,  USVt_hat_extraction
-from .sampling_utils import coverage, rndm_m_random_calculator
-
+import sys
+from inference_utils import gibbs_sampler, gibbs_sampler_simplex, USVt_hat_extraction
+from sampling_utils import coverage, rndm_m_random_calculator
+from visualizations_utils import *
 
 class BayesianModelCombination:
     """
@@ -68,6 +69,10 @@ class BayesianModelCombination:
 
         # Perform SVD
         U, S, Vt = np.linalg.svd(model_predictions_train_centered)
+
+        self.S = S
+        self.U = U
+        self.Vt = Vt
 
         # Dimensionality reduction
         U_hat, S_hat, Vt_hat, Vt_hat_normalized = USVt_hat_extraction(U, S, Vt, components_kept) #type: ignore
@@ -134,7 +139,6 @@ class BayesianModelCombination:
                 iterations,
                 [b_mean_prior, b_mean_cov, nu0_chosen, sigma20_chosen]
             )
-
 
     
     def predict(self, X):
@@ -228,12 +232,13 @@ class BayesianModelCombination:
 
         return rndm_m, lower_df, median_df, upper_df
 
-    def evaluate(self, domain_filter=None):
+    def evaluate(self, train_idx, val_idx, test_idx, domain_filter=None):
         """
         Evaluate the model combination using coverage calculation.
 
         :param domain_filter: dict with optional domain key ranges, e.g., {"Z": (20, 30), "N": (20, 40)}
-        :return: coverage list for each percentile
+        :return: coverage list for each percentile. I have changed this function a little to accommodate for 
+        training, validating, and testing data.
         """
         df = self.data_dict[self.current_property]
 
@@ -251,73 +256,169 @@ class BayesianModelCombination:
                 else:
                     df = df[df[col] == cond]
 
-        preds = df[self.models].to_numpy()
-        rndm_m, (lower, median, upper) = rndm_m_random_calculator(preds, self.samples, self.Vt_hat)
+        preds_train = df[self.models].to_numpy()[train_idx]
+        preds_val = df[self.models].to_numpy()[val_idx]
+        preds_test = df[self.models].to_numpy()[test_idx]
 
-        return coverage(np.arange(0, 101, 5), rndm_m, df, truth_column=self.truth_column_name)
+        rndm_m_train, (lower_train, median_train, upper_train) = rndm_m_random_calculator(preds_train, self.samples, self.Vt_hat)
+        rndm_m_val, (lower_val, median_val, upper_val) = rndm_m_random_calculator(preds_val, self.samples, self.Vt_hat)
+        rndm_m_test, (lower_test, median_test, upper_test) = rndm_m_random_calculator(preds_test, self.samples, self.Vt_hat)
 
+        coverage_train = coverage(np.arange(0, 101, 5), rndm_m_train, df, truth_column=self.truth_column_name)
+        coverage_val = coverage(np.arange(0, 101, 5), rndm_m_val, df, truth_column=self.truth_column_name)
+        coverage_test = coverage(np.arange(0, 101, 5), rndm_m_test, df, truth_column=self.truth_column_name)
 
-    def predict3(self, property):
-        """
-        Predict a specified property using the model weights learned during training.
-        This version slices both Vt_hat and betas to match the available models.
+        self.coverage_train, self.coverage_val, self.coverage_test = coverage_train, coverage_val, coverage_test
 
-        :param property: The property name to predict (e.g., 'ChRad').
-        :return:
-            - rndm_m: array of shape (n_samples, n_points), full posterior draws
-            - lower_df: DataFrame with columns domain_keys + ['Predicted_Lower']
-            - median_df: DataFrame with columns domain_keys + ['Predicted_Median']
-            - upper_df: DataFrame with columns domain_keys + ['Predicted_Upper']
-        """
-        if property not in self.data_dict:
-            raise KeyError(f"Property '{property}' not found in data_dict.")
+        return coverage_train, coverage_val, coverage_test
 
-        df = self.data_dict[property].copy()
+    def plot_singular_values(self, labelsize = 25, figsize = (6,5), dpi = 200, linewidth = 3, s = 90, fontsize = 25, \
+                          xlabel = r'Components $j$', ylabel = r'Singular Value $s_j/s_1$'):
+        # This will plot out the singular values from Bayesian calibration
+        singular_values_plots(
+            self.S,
+            labelsize = labelsize,
+            figsize = figsize, 
+            dpi = dpi, 
+            linewidth = linewidth, 
+            s = s, 
+            fontsize = fontsize, 
+            xlabel = xlabel, 
+            ylabel = ylabel
+            )
 
-        # Infer domain and model columns
-        full_model_cols = self.models
-        domain_keys = [col for col in df.columns if col not in full_model_cols and col != self.truth_column_name]
-
-        # Determine which models are present
-        available_models = [m for m in full_model_cols if m in df.columns]
-
-        if len(available_models) == 0:
-            raise ValueError("No available trained models are present in prediction DataFrame.")
-
-        # Filter predictions and model weights
-        model_preds = df[available_models].values
-        domain_df = df[domain_keys].reset_index(drop=True)
-
-        # Find indices of available models in training order
-        model_indices = [self.models.index(m) for m in available_models]
-
-        # Reduce Vt_hat to match available models
-        Vt_hat_reduced = self.Vt_hat[:, model_indices]
-
-        # Sample theta from training samples
-        rng = np.random.default_rng()
-        theta_rand_selected = rng.choice(self.samples, 10000, replace=False)
-
-        # Slice betas to match reduced Vt_hat
-        betas_full = theta_rand_selected[:, :-1]  # shape: (10000, num_components)
-        num_components_used = Vt_hat_reduced.shape[0]
-        betas_reduced = betas_full[:, :num_components_used]
-
-        noise_stds = theta_rand_selected[:, -1][:, None]  # shape: (10000, 1)
-        sliced_samples = np.hstack([betas_reduced, noise_stds])  # shape: (10000, num_components_used + 1)
-
-        # Now call rndm_m_random_calculator with sliced samples:
-        rndm_m, (lower, median, upper) = rndm_m_random_calculator(
-            model_preds, sliced_samples, Vt_hat_reduced
+    def plot_PCs_2D(self, PC, xvals, yvals, zvals=None, quantity_of_interest='Radii PCs coordinates',
+                model=None, labelsize=25, figsize=(12, 8), dpi=200, fontsize=25,
+                xlabel='Neutrons', ylabel='Protons'):
+    
+        if zvals is None:
+            zvals = self.U[PC]
+        if model is None:
+            model = f'PC_{PC}'
+        
+        Plotter2D_single(
+            xvals, yvals, zvals=zvals,
+            quantity_of_interest=quantity_of_interest,
+            model=model,
+            labelsize=labelsize,
+            figsize=figsize,
+            dpi=dpi,
+            fontsize=fontsize,
+            xlabel=xlabel,
+            ylabel=ylabel
         )
 
-        lower_df = domain_df.copy()
-        lower_df["Predicted_Lower"] = lower
+    def plot_PCs_3D(self, PC, xvals, yvals, zvals = None, title ='Radii PCs coordinates', labelsize = 15, fontsize = 20, figsize = (8,6), 
+                    dpi = 200, dxy = 1.5, xlabel = 'Neutrons', ylabel = 'Protons', zlabel = 'Z Value', elev=30, azim=-60):
 
-        median_df = domain_df.copy()
-        median_df["Predicted_Median"] = median
+        if zvals is None:
+            zvals = self.U[PC]
+        if model is None:
+            model = f'PC_{PC}'
 
-        upper_df = domain_df.copy()
-        upper_df["Predicted_Upper"] = upper
+        Plotter3D_single(xvals, yvals, zvals = zvals, 
+                         title = title, 
+                         labelsize = labelsize, 
+                         fontsize = fontsize, 
+                         figsize = figsize, 
+                         dpi = dpi, 
+                         dxy = dxy,
+                         xlabel = xlabel, 
+                         ylabel = ylabel, 
+                         zlabel = zlabel, 
+                         elev= elev, 
+                         azim= azim
+                         )
+        
+    def plot_PCs_projection(self, PC_index1, PC_index2, models = None, colors = None, labelsize = 35, fontsize = 35,
+                            figsize = (10,10), dpi = 100, headwidth = 0.02, head_length = 0.05):
+        
+        if models == None:
+            models = self.models
+        if colors == None:
+            colors = [
+                "#1f77b4", # Vivid blue
+                "#ff7f0e", # Bright orange
+                "#2ca02c", # Rich green
+                "#d62728", # Strong red
+                "#9467bd", # Deep purple
+                # "#8c564b", # Brownish-pink
+                "#e377c2", # Pink
+                "#7f7f7f", # Medium gray
+                "#bcbd22", # Lime green
+                "#17becf", # Cyan
+                "#393b79", # Dark blue
+                "#637939", # Olive green
+                "#8c6d31", # Bronze
+                # "#843c39", # Dark red
+                # "#ad494a", # Reddish brown
+                "#d6616b", # Soft red
+                "#e7ba52", # Golden yellow
+                "#7b4173", # Dark purple
+                "#a55194", # Mauve
+                "#ce6dbd", # Light purple
+            ]
 
-        return rndm_m, lower_df, median_df, upper_df
+        PCs_arrows(PC_index1,
+                   PC_index2, 
+                   Vt_hat_normalized = self.Vt_hat_normalized, 
+                   models = models, 
+                   colors = colors, 
+                   labelsize = labelsize, 
+                   fontsize = fontsize,
+                   figsize = figsize, 
+                   dpi = dpi, 
+                   headwidth = headwidth, 
+                   head_length = head_length
+                   )
+        
+    def corner_plot(self, samples = None, labelsize = 15, bins = 50, dpi = 300, linewidth = 3, fontsize = 30):
+
+        if samples == None:
+            samples = self.samples
+        
+        samples_visualizations(samples, labelsize = labelsize, bins = bins, dpi = dpi, linewidth = linewidth, fontsize = fontsize)
+
+    def plot_models_weights(self, samples = None, Vt_hat = None, models = None, colors = None, labelsize = 20, 
+                            figsize = (10,6), dpi = 150, fontsize = 35, ticksize = 25, capsize = 5):
+        
+        if samples == None:
+            samples = self.samples
+        if Vt_hat == None:
+            Vt_hat = self.Vt_hat
+        if models == None:
+            models = self.models
+        
+        models_weights(samples = samples, 
+                       Vt_hat = Vt_hat, 
+                       models = models, 
+                       colors = colors, 
+                       labelsize = labelsize, 
+                       figsize = figsize, 
+                       dpi = dpi, 
+                       fontsize = fontsize, 
+                       ticksize = ticksize, 
+                       capsize = capsize
+                       )
+    
+    def coverage_graph(self, coverage_train, coverage_val, coverage_test, percentiles = None, figsize = (6,6), 
+                       dpi = 200, colors = None, linewidth = 3, fontsize = 22, labelsize = 20):
+        
+        if colors == None:
+            colors = ['blue', 'yellow', 'red']
+        if percentiles == None:
+            percentiles = np.arange(0, 101, 5) 
+
+        coverage_graph(percentiles = percentiles, 
+                       coverage_train = coverage_train, 
+                       coverage_val = coverage_val, 
+                       coverage_test = coverage_test, 
+                       figsize = figsize, 
+                       dpi = dpi, 
+                       colors = colors, 
+                       linewidth = linewidth, 
+                       fontsize = fontsize, 
+                       labelsize = labelsize
+                       )
+
+        
