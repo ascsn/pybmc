@@ -187,7 +187,7 @@ class Dataset:
                         if np.linalg.norm(np.array(point1) - np.array(point2)) <= distance2:
                             close2 = True
                             break
-                    if close2==True:
+                    if close2:
                         validation.append(point1)
                         validation_list_coordinates.append(i)
                     else:
