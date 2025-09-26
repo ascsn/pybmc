@@ -23,6 +23,7 @@ class TestDataset(unittest.TestCase):
         )
         self.dataset = Dataset(data_source="fake_path.h5")
         self.dataset.data = {"target": self.sample_df}
+        self.dataset.domain_keys = ["x", "y"]
 
     @patch("pybmc.data.os.path.exists", return_value=True)
     @patch("pybmc.data.pd.read_csv")

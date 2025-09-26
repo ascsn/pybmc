@@ -126,9 +126,7 @@ class TestBayesianModelCombination(unittest.TestCase):
         self.bmc.train()
         # Use all rows for prediction input
         X = self.df[["x", "y", "model1", "model2", "model3"]].copy()
-        rndm_m, lower_df, median_df, upper_df = self.bmc.predict2(
-            self.property
-        )
+        rndm_m, lower_df, median_df, upper_df = self.bmc.predict(self.property)
 
         self.assertEqual(rndm_m.shape[1], len(X))
         self.assertIn("Predicted_Lower", lower_df.columns)
@@ -150,22 +148,19 @@ class TestBayesianModelCombination(unittest.TestCase):
 
     def test_bmc_predict(self):
         models_list = ["model1", "model2"]
-        data_dict = {"property": pd.DataFrame({"model1": [1, 2], "model2": [3, 4], "truth": [5, 6]})}
+        data_dict = {"property": pd.DataFrame({"N": [1, 2], "Z": [10, 20], "model1": [1, 2], "model2": [3, 4], "truth": [5, 6]})}
         truth_column_name = "truth"
         bmc = BayesianModelCombination(models_list, data_dict, truth_column_name)
 
-        train_df = pd.DataFrame({"model1": [1, 2], "model2": [3, 4], "truth": [5, 6]})
+        train_df = pd.DataFrame({"N": [1, 2], "Z": [10, 20], "model1": [1, 2], "model2": [3, 4], "truth": [5, 6]})
         components_kept = 1
 
         # Perform orthogonalization and training
         bmc.orthogonalize("property", train_df, components_kept)
         bmc.train()
 
-        # Create input data for prediction
-        X = pd.DataFrame({"model1": [1, 2], "model2": [3, 4]})
-
-        # Perform prediction
-        rndm_m, lower_df, median_df, upper_df = bmc.predict(X)
+        # Perform prediction using property name
+        rndm_m, lower_df, median_df, upper_df = bmc.predict("property")
 
         self.assertIsNotNone(rndm_m)
         self.assertIsInstance(lower_df, pd.DataFrame)
@@ -174,30 +169,11 @@ class TestBayesianModelCombination(unittest.TestCase):
         self.assertFalse(lower_df.empty)
         self.assertFalse(median_df.empty)
         self.assertFalse(upper_df.empty)
-
-    def test_bmc_predict2(self):
-        models_list = ["model1", "model2", "model3"]
-        data_dict = {"property": pd.DataFrame({"model1": [1, 2], "model2": [3, 4], "model3": [5, 6], "truth": [7, 8]})}
-        truth_column_name = "truth"
-        bmc = BayesianModelCombination(models_list, data_dict, truth_column_name)
-
-        train_df = pd.DataFrame({"model1": [1, 2], "model2": [3, 4], "model3": [5, 6], "truth": [7, 8]})
-        components_kept = 1
-
-        # Perform orthogonalization and training
-        bmc.orthogonalize("property", train_df, components_kept)
-        bmc.train()
-
-        # Perform prediction using property name
-        rndm_m, lower_df, median_df, upper_df = bmc.predict2("property")
-
-        assert rndm_m is not None
-        assert isinstance(lower_df, pd.DataFrame)
-        assert isinstance(median_df, pd.DataFrame)
-        assert isinstance(upper_df, pd.DataFrame)
-        assert not lower_df.empty
-        assert not median_df.empty
-        assert not upper_df.empty
+        # Check domain columns are present
+        for col in ["N", "Z"]:
+            self.assertIn(col, lower_df.columns)
+            self.assertIn(col, median_df.columns)
+            self.assertIn(col, upper_df.columns)
 
     def test_bmc_evaluate(self):
         models_list = ["model1", "model2"]
