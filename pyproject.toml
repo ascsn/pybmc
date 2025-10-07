@@ -1,8 +1,13 @@
 [tool.poetry]
 name = "pybmc"
-version = "0.1.2"
+version = "0.2.1"
 description = "A package for Bayesian model combination"
-authors = ["Kyle Godbey <pybmc@ascsn.net>"]
+authors = [
+  {name = "Kyle Godbey", email = "pybmc@ascsn.net"},
+  {name = "Troy Dasher"},
+  {name = "Pablo Giuliani"},
+  {name = "An Le"},
+]
 license = "GPL-3.0"
 readme = "README.md"
 homepage = "https://github.com/ascsn/pybmc"
