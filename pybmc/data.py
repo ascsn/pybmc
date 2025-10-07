@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import os
+import logging
 
 
 
@@ -14,14 +15,22 @@ class Dataset:
     Supports .h5 and .csv files, and provides data splitting functionality.
     """
 
-    def __init__(self, data_source=None):
+    def __init__(self, data_source=None, verbose=True):
         """
         Initialize the Dataset object.
 
         :param data_source: Path to the data file (.h5 or .csv).
+        :param verbose: If True, display warnings and informational messages. Default is True.
         """
         self.data_source = data_source
         self.data = {}  # Dictionary of model to DataFrame
+        self.verbose = verbose
+        self.logger = logging.getLogger(__name__)
+        if not self.logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(logging.Formatter('%(message)s'))
+            self.logger.addHandler(handler)
+        self.logger.setLevel(logging.INFO if verbose else logging.WARNING)
     
     def load_data(self, models, keys=None, domain_keys=None, model_column='model'):
         """
@@ -63,7 +72,7 @@ class Dataset:
                     # Check required columns
                     missing_cols = [col for col in domain_keys + [prop] if col not in df.columns]
                     if missing_cols:
-                        print(f"[Skipped] Model '{model}' missing columns {missing_cols} for property '{prop}'.")
+                        self.logger.info(f"[Skipped] Model '{model}' missing columns {missing_cols} for property '{prop}'.")
                         skipped_models.append(model)
                         continue
                     temp = df[domain_keys + [prop]].copy()
@@ -77,7 +86,7 @@ class Dataset:
                     model_df = df[df[model_column] == model]
                     missing_cols = [col for col in domain_keys + [prop] if col not in model_df.columns]
                     if missing_cols:
-                        print(f"[Skipped] Model '{model}' missing columns {missing_cols} for key '{prop}'.")
+                        self.logger.info(f"[Skipped] Model '{model}' missing columns {missing_cols} for key '{prop}'.")
                         skipped_models.append(model)
                         continue
                     temp = model_df[domain_keys + [prop]].copy()
@@ -87,7 +96,7 @@ class Dataset:
                 raise ValueError("Unsupported file format. Only .h5 and .csv are supported.")
 
             if not dfs:
-                print(f"[Warning] No models with property '{prop}'. Resulting DataFrame will be empty.")
+                self.logger.info(f"[Warning] No models with property '{prop}'. Resulting DataFrame will be empty.")
                 result[prop] = pd.DataFrame(columns=domain_keys + [m for m in models if m not in skipped_models])
                 continue
 

@@ -4,6 +4,8 @@ import unittest
 import pandas as pd
 from unittest.mock import patch
 from pybmc.data import Dataset
+import logging
+from io import StringIO
 
 sys.path.insert(
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -170,6 +172,55 @@ class TestDataset(unittest.TestCase):
         self.assertEqual(len(train), 1)  # Only (1, 1) should be in train
         self.assertEqual(len(val), 1)    # Only (2, 2) should be in validation
         self.assertEqual(len(test), 0)   # No points should be in test
+
+    @patch("pybmc.data.os.path.exists", return_value=True)
+    @patch("pybmc.data.pd.read_hdf")
+    def test_verbose_enabled(self, mock_read_hdf, mock_exists):
+        """Test that warnings are logged when verbose=True (default)."""
+        # Mock missing columns scenario
+        model_data_incomplete = pd.DataFrame(
+            {"x": [1, 2], "y": [1, 2]}  # Missing 'target' column
+        )
+        mock_read_hdf.side_effect = lambda file, key: model_data_incomplete
+
+        dataset = Dataset(data_source="fake_path.h5", verbose=True)
+        
+        # Capture logging output
+        with self.assertLogs('pybmc.data', level='INFO') as cm:
+            result = dataset.load_data(
+                models=["modelA"],
+                keys=["target"],
+                domain_keys=["x", "y"],
+            )
+        
+        # Verify that the warning was logged
+        self.assertTrue(any("[Skipped]" in msg or "[Warning]" in msg for msg in cm.output))
+
+    @patch("pybmc.data.os.path.exists", return_value=True)
+    @patch("pybmc.data.pd.read_hdf")
+    def test_verbose_disabled(self, mock_read_hdf, mock_exists):
+        """Test that warnings are suppressed when verbose=False."""
+        # Mock missing columns scenario
+        model_data_incomplete = pd.DataFrame(
+            {"x": [1, 2], "y": [1, 2]}  # Missing 'target' column
+        )
+        mock_read_hdf.side_effect = lambda file, key: model_data_incomplete
+
+        dataset = Dataset(data_source="fake_path.h5", verbose=False)
+        
+        # Since verbose=False sets logger to WARNING level, INFO messages should not appear
+        # We'll verify by checking that the logger level is set correctly
+        self.assertEqual(dataset.logger.level, logging.WARNING)
+        
+        result = dataset.load_data(
+            models=["modelA"],
+            keys=["target"],
+            domain_keys=["x", "y"],
+        )
+        
+        # Result should still be returned properly (empty dataframe for missing property)
+        self.assertIn("target", result)
+        self.assertIsInstance(result["target"], pd.DataFrame)
 
 
 if __name__ == "__main__":
