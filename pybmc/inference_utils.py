@@ -140,7 +140,6 @@ def gibbs_sampler_simplex(
         sigma2 = 1 / np.random.default_rng().gamma(shape_post, 1 / scale_post)
         samples.append(np.append(b_current, np.sqrt(sigma2)))
 
-    print(f"Acceptance rate: {acceptance/iterations*100:.2f}%")
     return np.array(samples)
 
 
