@@ -71,11 +71,11 @@ bmc.train(training_options={"iterations": 50000, "sampler": "gibbs_sampling"})
 
 ## 4. Make Predictions
 
-After training, we can use the `predict2` method to generate predictions with uncertainty quantification. The method returns the full posterior draws, as well as DataFrames for the lower, median, and upper credible intervals.
+After training, we can use the `predict` method to generate predictions with uncertainty quantification. The method returns the full posterior draws, as well as DataFrames for the lower, median, and upper credible intervals.
 
 ```python
 # Make predictions with uncertainty quantification
-rndm_m, lower_df, median_df, upper_df = bmc.predict2("BE")
+rndm_m, lower_df, median_df, upper_df = bmc.predict("BE")
 
 # Display the first 5 rows of the median predictions
 print(median_df.head())
