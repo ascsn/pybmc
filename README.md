@@ -2,7 +2,7 @@
 
 [![Coverage Status](https://img.shields.io/badge/Coverage-86%25-brightgreen)](https://ascsn.github.io/pybmc/coverage/)
 
-pyBMC is a Python package for performing Bayesian Model Combination (BMC) on various predictive models. It provides tools for data handling, orthogonalization, Gibbs sampling, and prediction with uncertainty quantification. The model combination methodology follows [this paper](https://journals.aps.org/prresearch/abstract/10.1103/PhysRevResearch.6.033266) by Giuliani et al.
+pyBMC is a Python package for performing Bayesian Model Combination (BMC) on various predictive models. It provides tools for data handling, orthogonalization, Gibbs sampling, and prediction with uncertainty quantification. The model combination methodology follows [this paper](https://doi.org/10.1103/PhysRevResearch.6.033266) by Giuliani et al.
 
 ## Features
 
