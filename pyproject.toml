@@ -3,10 +3,10 @@ name = "pybmc"
 version = "0.2.1"
 description = "A package for Bayesian model combination"
 authors = [
-  {name = "Kyle Godbey", email = "pybmc@ascsn.net"},
-  {name = "Troy Dasher"},
-  {name = "Pablo Giuliani"},
-  {name = "An Le"},
+  "Kyle Godbey <pybmc@ascsn.net>",
+  "Troy Dasher",
+  "Pablo Giuliani",
+  "An Le"
 ]
 license = "GPL-3.0"
 readme = "README.md"
