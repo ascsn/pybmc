@@ -32,7 +32,7 @@ class Dataset:
             self.logger.addHandler(handler)
         self.logger.setLevel(logging.INFO if verbose else logging.WARNING)
     
-    def load_data(self, models, keys=None, domain_keys=None, model_column='model'):
+    def load_data(self, models, keys=None, domain_keys=None, model_column='model', truth_column_name=None):
         """
         Load data for each property and return a dictionary of synchronized DataFrames.
         Each DataFrame has columns: domain_keys + one column per model for that property.
@@ -43,11 +43,15 @@ class Dataset:
             domain_keys (list, optional): List of columns used to define the common domain (default ['N', 'Z']).
             model_column (str, optional): Name of the column in the CSV that identifies which model each row belongs to.
                                           Only used for CSV files; ignored for HDF5 files.
+            truth_column_name (str, optional): Name of the truth model. If provided, the truth data will be 
+                                               left-joined to the common domain of the other models, allowing 
+                                               the truth data to have a smaller domain than the models.
 
         Returns:
             dict: Dictionary where each key is a property name and each value is a DataFrame with columns:
                   domain_keys + one column per model for that property.
                   The DataFrames are synchronized to the intersection of the domains for all models.
+                  If truth_column_name is provided, truth data is left-joined (may have NaN values).
 
         Supports both .h5 and .csv files.
         """
@@ -64,8 +68,12 @@ class Dataset:
 
         for prop in keys:
             dfs = []
+            truth_df = None
             skipped_models = []
 
+            # Separate regular models from truth model
+            regular_models = [m for m in models if m != truth_column_name]
+            
             if self.data_source.endswith('.h5'):
                 for model in models:
                     df = pd.read_hdf(self.data_source, key=model)
@@ -77,7 +85,13 @@ class Dataset:
                         continue
                     temp = df[domain_keys + [prop]].copy()
                     temp.rename(columns={prop: model}, inplace=True) # type: ignore
-                    dfs.append(temp)
+                    
+                    # Store truth data separately if truth_column_name is provided
+                    if truth_column_name and model == truth_column_name:
+                        truth_df = temp
+                    else:
+                        dfs.append(temp)
+                        
             elif self.data_source.endswith('.csv'):
                 df = pd.read_csv(self.data_source)
                 for model in models:
@@ -91,7 +105,12 @@ class Dataset:
                         continue
                     temp = model_df[domain_keys + [prop]].copy()
                     temp.rename(columns={prop: model}, inplace=True)
-                    dfs.append(temp)
+                    
+                    # Store truth data separately if truth_column_name is provided
+                    if truth_column_name and model == truth_column_name:
+                        truth_df = temp
+                    else:
+                        dfs.append(temp)
             else:
                 raise ValueError("Unsupported file format. Only .h5 and .csv are supported.")
 
@@ -100,12 +119,17 @@ class Dataset:
                 result[prop] = pd.DataFrame(columns=domain_keys + [m for m in models if m not in skipped_models])
                 continue
 
-            # Intersect domain for this property
+            # Intersect domain for regular models only
             common_df = dfs[0]
             for other_df in dfs[1:]:
                 common_df = pd.merge(common_df, other_df, on=domain_keys, how="inner")
-            # Drop rows with NaN in any required column
+            # Drop rows with NaN in any required column (for regular models)
             common_df = common_df.dropna()
+            
+            # Left join truth data if it exists and was specified
+            if truth_df is not None:
+                common_df = pd.merge(common_df, truth_df, on=domain_keys, how="left")
+            
             result[prop] = common_df
             self.data = result
         return result

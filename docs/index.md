@@ -7,6 +7,7 @@ Welcome to the official documentation for pyBMC, a Python package for general Ba
 pyBMC provides a comprehensive framework for combining multiple predictive models using Bayesian statistics. Key features include:
 
 - **Data Management**: Load and preprocess various types of data from HDF5 and CSV files
+- **Flexible Truth Data**: Truth/experimental data can have a smaller domain than prediction models
 - **Orthogonalization**: Transform model predictions using Singular Value Decomposition (SVD)
 - **Bayesian Inference**: Perform Gibbs sampling for model combination
 - **Uncertainty Quantification**: Generate predictions with credible intervals

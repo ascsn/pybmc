@@ -222,6 +222,146 @@ class TestDataset(unittest.TestCase):
         self.assertIn("target", result)
         self.assertIsInstance(result["target"], pd.DataFrame)
 
+    @patch("pybmc.data.os.path.exists", return_value=True)
+    @patch("pybmc.data.pd.read_hdf")
+    def test_load_data_with_smaller_truth_domain_h5(self, mock_read_hdf, mock_exists):
+        """Test that truth data can have a smaller domain than models when using truth_column_name."""
+        # Model data has domain points: (1,1), (2,2), (3,3), (4,4)
+        def mock_hdf_reader(file, key):
+            if key == "modelA":
+                return pd.DataFrame({
+                    "x": [1, 2, 3, 4],
+                    "y": [1, 2, 3, 4],
+                    "target": [10, 20, 30, 40]
+                })
+            elif key == "modelB":
+                return pd.DataFrame({
+                    "x": [1, 2, 3, 4],
+                    "y": [1, 2, 3, 4],
+                    "target": [11, 21, 31, 41]
+                })
+            elif key == "truth":
+                # Truth data has only 2 points: (1,1), (2,2)
+                return pd.DataFrame({
+                    "x": [1, 2],
+                    "y": [1, 2],
+                    "target": [10.5, 20.5]
+                })
+        
+        mock_read_hdf.side_effect = mock_hdf_reader
+        
+        dataset = Dataset(data_source="fake_path.h5")
+        result = dataset.load_data(
+            models=["modelA", "modelB", "truth"],
+            keys=["target"],
+            domain_keys=["x", "y"],
+            truth_column_name="truth"
+        )
+        
+        # Result should have all 4 domain points from the models
+        self.assertIn("target", result)
+        df = result["target"]
+        self.assertEqual(len(df), 4, "Should have all 4 domain points from models")
+        
+        # All columns should be present
+        self.assertTrue(all(col in df.columns for col in ["x", "y", "modelA", "modelB", "truth"]))
+        
+        # Model data should be complete (no NaN)
+        self.assertTrue(df["modelA"].notna().all(), "modelA should have no NaN values")
+        self.assertTrue(df["modelB"].notna().all(), "modelB should have no NaN values")
+        
+        # Truth data should have NaN for points (3,3) and (4,4)
+        self.assertEqual(df["truth"].isna().sum(), 2, "truth should have 2 NaN values for missing domain points")
+        self.assertTrue(df.loc[(df["x"] == 1) & (df["y"] == 1), "truth"].notna().all(), "truth should have value at (1,1)")
+        self.assertTrue(df.loc[(df["x"] == 2) & (df["y"] == 2), "truth"].notna().all(), "truth should have value at (2,2)")
+        self.assertTrue(df.loc[(df["x"] == 3) & (df["y"] == 3), "truth"].isna().all(), "truth should be NaN at (3,3)")
+        self.assertTrue(df.loc[(df["x"] == 4) & (df["y"] == 4), "truth"].isna().all(), "truth should be NaN at (4,4)")
+
+    @patch("pybmc.data.os.path.exists", return_value=True)
+    @patch("pybmc.data.pd.read_csv")
+    def test_load_data_with_smaller_truth_domain_csv(self, mock_read_csv, mock_exists):
+        """Test that truth data can have a smaller domain than models in CSV format."""
+        # CSV with models having 4 points and truth having 2 points
+        mock_read_csv.return_value = pd.DataFrame({
+            "x": [1, 2, 3, 4, 1, 2, 3, 4, 1, 2],
+            "y": [1, 2, 3, 4, 1, 2, 3, 4, 1, 2],
+            "target": [10, 20, 30, 40, 11, 21, 31, 41, 10.5, 20.5],
+            "model": ["modelA", "modelA", "modelA", "modelA", 
+                     "modelB", "modelB", "modelB", "modelB",
+                     "truth", "truth"]
+        })
+        
+        dataset = Dataset(data_source="fake_path.csv")
+        result = dataset.load_data(
+            models=["modelA", "modelB", "truth"],
+            keys=["target"],
+            domain_keys=["x", "y"],
+            model_column="model",
+            truth_column_name="truth"
+        )
+        
+        # Result should have all 4 domain points from the models
+        self.assertIn("target", result)
+        df = result["target"]
+        self.assertEqual(len(df), 4, "Should have all 4 domain points from models")
+        
+        # All columns should be present
+        self.assertTrue(all(col in df.columns for col in ["x", "y", "modelA", "modelB", "truth"]))
+        
+        # Model data should be complete (no NaN)
+        self.assertTrue(df["modelA"].notna().all(), "modelA should have no NaN values")
+        self.assertTrue(df["modelB"].notna().all(), "modelB should have no NaN values")
+        
+        # Truth data should have NaN for points (3,3) and (4,4)
+        self.assertEqual(df["truth"].isna().sum(), 2, "truth should have 2 NaN values for missing domain points")
+
+    @patch("pybmc.data.os.path.exists", return_value=True)
+    @patch("pybmc.data.pd.read_hdf")
+    def test_load_data_without_truth_column_name_backward_compat(self, mock_read_hdf, mock_exists):
+        """Test backward compatibility: without truth_column_name, all models should be inner-joined."""
+        def mock_hdf_reader(file, key):
+            if key == "modelA":
+                return pd.DataFrame({
+                    "x": [1, 2, 3, 4],
+                    "y": [1, 2, 3, 4],
+                    "target": [10, 20, 30, 40]
+                })
+            elif key == "modelB":
+                return pd.DataFrame({
+                    "x": [1, 2, 3, 4],
+                    "y": [1, 2, 3, 4],
+                    "target": [11, 21, 31, 41]
+                })
+            elif key == "truth":
+                # Truth data has only 2 points
+                return pd.DataFrame({
+                    "x": [1, 2],
+                    "y": [1, 2],
+                    "target": [10.5, 20.5]
+                })
+        
+        mock_read_hdf.side_effect = mock_hdf_reader
+        
+        dataset = Dataset(data_source="fake_path.h5")
+        # Without truth_column_name, should use inner join (old behavior)
+        result = dataset.load_data(
+            models=["modelA", "modelB", "truth"],
+            keys=["target"],
+            domain_keys=["x", "y"]
+            # NOTE: truth_column_name not provided
+        )
+        
+        # Result should have only 2 domain points (intersection of all)
+        self.assertIn("target", result)
+        df = result["target"]
+        self.assertEqual(len(df), 2, "Should have only 2 domain points (intersection)")
+        
+        # All columns should be present with no NaN values
+        self.assertTrue(all(col in df.columns for col in ["x", "y", "modelA", "modelB", "truth"]))
+        self.assertTrue(df["modelA"].notna().all())
+        self.assertTrue(df["modelB"].notna().all())
+        self.assertTrue(df["truth"].notna().all())
+
 
 if __name__ == "__main__":
     unittest.main()
