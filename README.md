@@ -22,6 +22,43 @@ pip install pybmc
 
 For a detailed walkthrough of how to use the package, please see the [Usage Guide](docs/usage.md).
 
+## Development and Testing
+
+This project uses [Poetry](https://python-poetry.org/) for dependency management and packaging. Poetry is **not required** for regular users who install via `pip install pybmc`, but is needed for development and testing.
+
+### Running Tests
+
+If you want to run the test suite:
+
+**Option 1: Using Poetry (recommended for development)**
+```bash
+# Install Poetry if you don't have it
+pip install poetry
+
+# Install the package with dev dependencies
+poetry install
+
+# Run tests
+poetry run pytest
+
+# Run tests with coverage
+poetry run pytest --cov=pybmc
+```
+
+**Option 2: Using pytest directly**
+```bash
+# Install pytest and other test dependencies
+pip install pytest pytest-cov
+
+# Run tests
+pytest
+
+# Run tests with coverage
+pytest --cov=pybmc
+```
+
+For more information on contributing and development workflows, see our [Contribution Guidelines](docs/CONTRIBUTING.md).
+
 ## Documentation
 
 Comprehensive documentation is available at [https://ascsn.github.io/pybmc/](https://ascsn.github.io/pybmc/), including:
