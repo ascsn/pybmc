@@ -37,7 +37,7 @@ data_dict = dataset.load_data(
 
 ### Alternative: Traditional Loading (All Models Share Domain)
 
-If you want all models to share the same domain (the original behavior), simply omit the `truth_column_name` parameter:
+If you want all models to share the same domain, simply omit the `truth_column_name` parameter:
 
 ```python
 # All models must have data at the same domain points
@@ -70,7 +70,7 @@ Next, we split the data into training, validation, and test sets. `pybmc` suppor
     )
     ```
 
-For standard cases where all models share the same domain:
+For cases where all models share the same domain:
 
 ```python
 # Split the data into training, validation, and test sets
@@ -210,10 +210,4 @@ coverage_results = bmc.evaluate()
 print(f"Coverage for 95% credible interval: {coverage_results[19]:.2f}%")
 ```
 
-This workflow enables you to:
-
-- Train your model on available experimental data
-- Make predictions across the full model domain
-- Extend predictions beyond experimental coverage
-- Maintain proper uncertainty quantification throughout
 
