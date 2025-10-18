@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pybmc"
-version = "0.2.3"
+version = "0.2.4"
 description = "A package for Bayesian model combination"
 authors = [
   "Kyle Godbey <pybmc@ascsn.net>",
