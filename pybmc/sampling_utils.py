@@ -37,7 +37,7 @@ def coverage(percentiles, rndm_m, models_output, truth_column):
     return coverage_results
 
 
-def rndm_m_random_calculator(filtered_model_predictions, samples, Vt_hat):
+def rndm_m_random_calculator(filtered_model_predictions, samples, Vt_hat, output_weights=True):
     """
     Generates posterior predictive samples and credible intervals.
 
@@ -80,5 +80,8 @@ def rndm_m_random_calculator(filtered_model_predictions, samples, Vt_hat):
     lower_radius = np.percentile(rndm_m, 2.5, axis=0)
     median_radius = np.percentile(rndm_m, 50, axis=0)
     upper_radius = np.percentile(rndm_m, 97.5, axis=0)
-
-    return rndm_m, [lower_radius, median_radius, upper_radius]
+    if output_weights:
+        return rndm_m, [lower_radius, median_radius, upper_radius], model_weights_random
+    else:
+        return rndm_m, [lower_radius, median_radius, upper_radius]
+    
