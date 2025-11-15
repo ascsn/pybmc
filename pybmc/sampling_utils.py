@@ -37,7 +37,7 @@ def coverage(percentiles, rndm_m, models_output, truth_column):
     return coverage_results
 
 
-def rndm_m_random_calculator(filtered_model_predictions, samples, Vt_hat, output_weights=True):
+def rndm_m_random_calculator(filtered_model_predictions, samples, Vt_hat, output_weights=False):
     """
     Generates posterior predictive samples and credible intervals.
 
