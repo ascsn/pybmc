@@ -1,10 +1,10 @@
-# pyBMC Documentation
+# pybmc Documentation
 
-Welcome to the official documentation for pyBMC, a Python package for general Bayesian Model Combination (BMC).
+Welcome to the official documentation for pybmc, a Python package for general Bayesian Model Combination (BMC).
 
 ## Overview
 
-pyBMC provides a comprehensive framework for combining multiple predictive models using Bayesian statistics. Key features include:
+pybmc provides a comprehensive framework for combining multiple predictive models using Bayesian statistics. Key features include:
 
 - **Data Management**: Load and preprocess various types of data from HDF5 and CSV files
 - **Orthogonalization**: Transform model predictions using Singular Value Decomposition (SVD)
@@ -29,7 +29,7 @@ For a detailed walkthrough, please see the [Usage Guide](usage.md).
 - [Usage Guide](usage.md): Detailed examples and tutorials
 - [API Reference](api_reference.md): Complete documentation of all classes and functions
 - [Theory Background](theory.md): Mathematical foundations of Bayesian model combination
-- [Contributing](contributing.md): How to contribute to pyBMC
+- [Contributing](contributing.md): How to contribute to pybmc
 
 ## Support
 
