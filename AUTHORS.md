@@ -11,7 +11,7 @@
 
 ## Acknowledgments
 
-- We thank the developers of the following libraries that make pyBMC possible:
+- We thank the developers of the following libraries that make pybmc possible:
   - NumPy
   - SciPy
   - pandas

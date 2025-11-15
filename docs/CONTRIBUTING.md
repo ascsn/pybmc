@@ -1,6 +1,6 @@
-# Contributing to pyBMC
+# Contributing to pybmc
 
-We welcome contributions from the community! This document outlines how you can contribute to the pyBMC project.
+We welcome contributions from the community! This document outlines how you can contribute to the pybmc project.
 
 ## Getting Started
 
@@ -78,4 +78,4 @@ When reporting issues, please include:
 
 ## License
 
-By contributing to pyBMC, you agree that your contributions will be licensed under the GPL-3.0 License.
+By contributing to pybmc, you agree that your contributions will be licensed under the GPL-3.0 License.

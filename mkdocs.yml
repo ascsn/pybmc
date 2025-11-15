@@ -60,8 +60,8 @@ theme:
       bug: octicons/bug-16
       example: octicons/beaker-16
       quote: octicons/quote-16
-  logo: assets/logo.svg
-  favicon: assets/logo.svg
+  logo: assets/pybmclogo.png
+  favicon: assets/pybmclogo.png
 
 markdown_extensions:
   - admonition
