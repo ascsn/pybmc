@@ -50,6 +50,7 @@ def rndm_m_random_calculator(filtered_model_predictions, samples, Vt_hat, output
         tuple[numpy.ndarray, list[numpy.ndarray]]:
             - `rndm_m` (numpy.ndarray): Posterior predictive samples.
             - `[lower, median, upper]` (list[numpy.ndarray]): Credible interval arrays.
+            - `model_weights_random` (numpy.ndarray): Posterior model weight samples
     """
     np.random.seed(142858)
     rng = np.random.default_rng()
