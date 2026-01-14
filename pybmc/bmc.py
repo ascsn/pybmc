@@ -119,6 +119,7 @@ class BayesianModelCombination:
             - lower_df: DataFrame with columns domain_keys + ['Predicted_Lower']
             - median_df: DataFrame with columns domain_keys + ['Predicted_Median']
             - upper_df: DataFrame with columns domain_keys + ['Predicted_Upper']
+            - weights: numpy.ndarray with posterior model weight samples
         """
         if self.samples is None or self.Vt_hat is None:
             raise ValueError("Must call `orthogonalize()` and `train()` before predicting.")
