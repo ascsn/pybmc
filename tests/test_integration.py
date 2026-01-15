@@ -85,7 +85,7 @@ class TestIntegrationWithSmallerTruthDomain(unittest.TestCase):
         self.assertIsNotNone(bmc.Vt_hat)
         
         # Step 5: Predict on all domain points (including those without truth)
-        rndm_m, lower_df, median_df, upper_df = bmc.predict("BE")
+        rndm_m, lower_df, median_df, upper_df, weights= bmc.predict("BE")
         
         # Verify predictions
         self.assertEqual(rndm_m.shape[1], 6, "Should have predictions for all 6 domain points")
@@ -164,7 +164,7 @@ class TestIntegrationWithSmallerTruthDomain(unittest.TestCase):
         bmc.train()
         
         # Predict on all points
-        rndm_m, lower_df, median_df, upper_df = bmc.predict("BE")
+        rndm_m, lower_df, median_df, upper_df, weights = bmc.predict("BE")
         
         # Verify predictions cover all domain points
         self.assertEqual(len(lower_df), 6)
