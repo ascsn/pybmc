@@ -119,6 +119,7 @@ class BayesianModelCombination:
             - lower_df: DataFrame with columns domain_keys + ['Predicted_Lower']
             - median_df: DataFrame with columns domain_keys + ['Predicted_Median']
             - upper_df: DataFrame with columns domain_keys + ['Predicted_Upper']
+            - weights: numpy.ndarray with posterior model weight samples
         """
         if self.samples is None or self.Vt_hat is None:
             raise ValueError("Must call `orthogonalize()` and `train()` before predicting.")
@@ -142,7 +143,8 @@ class BayesianModelCombination:
         model_preds = df[available_models].values
         domain_df = df[domain_keys].reset_index(drop=True)
 
-        rndm_m, (lower, median, upper) = rndm_m_random_calculator(model_preds, self.samples, self.Vt_hat)
+        rndm_m, (lower, median, upper), weights = rndm_m_random_calculator(
+            model_preds, self.samples, self.Vt_hat, output_weights=True)
 
         # Build output DataFrames
         lower_df = domain_df.copy()
@@ -155,7 +157,7 @@ class BayesianModelCombination:
         upper_df = domain_df.copy()
         upper_df["Predicted_Upper"] = upper
 
-        return rndm_m, lower_df, median_df, upper_df
+        return rndm_m, lower_df, median_df, upper_df, weights
 
     def evaluate(self, domain_filter=None):
         """
