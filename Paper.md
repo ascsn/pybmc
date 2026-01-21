@@ -36,6 +36,13 @@ bibliography:
 # Summary
 A description of the high-level functionality and purpose of the software for a diverse, non-specialist audience.
 
+pybmc is a Python package for Bayesian model combination (BMC), a Bayesian machine learning framework for combining predictions from multiple correlated models while quantifying predictive uncertainty. Unlike simple averaging, pybmc explicitly accounts for inter-model correlations and learns optimal model weights through Bayesian inference, yielding combined predictions with uncertainty estimates.
+
+The package is designed for scientific applications in which models are defined on a shared domain but differ systematically in their assumptions, approximations, or parameterizations. pybmc provides a flexible API for data handling, orthogonalization, Gibbs sampling, and prediction with uncertainty quantification. 
+
+pybmc is implemented in Python with minimal dependencies and is intended to integrate naturally into existing scientific workflows. While motivated by applications in nuclear physics, the package is applicable to a broad class of problems involving ensemble modeling and uncertainty-aware prediction.
+
+
 # Statement of need
 A section that clearly illustrates the research purpose of the software and places it in the context of related work. This should clearly state what problems the software is designed to solve, who the target audience is, and its relation to other work.
 
@@ -44,6 +51,13 @@ A description of how this software compares to other commonly-used packages in t
 
 # Software design
 An explanation of the trade-offs you weighed, the design/architecture you chose, and why it matters for your research application. This should demonstrate meaningful design thinking beyond a superficial code structure description.
+
+
+pybmc is organized to provide a user-friendly, object-oriented API through the use of community tools while keeping the the user interface in Python. It is centered around two classes that separate data handling and the BMC workflow, along with helper functions to assist with the training and uncertainty quantification. This design isolates the two distinct functions that pybmc provides, clarifying the flow from preprocessed model outputs to final BMC estimates.
+
+Data management is handled by the Dataset class, which provides utilities for loading data from external sources, selecting valid domains, and partitioning available observations into training, validation, and testing subsets. This abstraction centralizes data preparation within pybmc, ensuring that the inference workflow operates on consistent and well-defined inputs.
+
+The BMC workflow is encapsulated in the BayesianModelCombination class, which serves as the main area for BMC. Rather than embedding certain functions directly in the class, supporting functionality such as sampling and uncertainty quantification is factored into helper modules. This design keeps the core workflow explicit and composable, emphasizes clarity in the training–prediction–uncertainty pipeline, and allows individual components to be modified or replaced without restructuring the overall package.
 
 # Research impact statement
 Evidence of realized impact (publications, external use, integrations) or credible near-term significance (benchmarks, reproducible materials, community-readiness signals). The evidence should be compelling and specific, not aspirational.
