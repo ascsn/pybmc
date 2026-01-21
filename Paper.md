@@ -3,32 +3,34 @@ https://joss.readthedocs.io/en/latest/paper.html
 https://joss.readthedocs.io/en/latest/example_paper.html
 
 ---
-title: 'pybmc: a Python package for Bayesian Model Combination'
+title: "pybmc: A Python package for Bayesian model combination"
+
 tags:
   - Python
-  - Bayesian
+  - Bayesian inference
   - Machine learning
-  - galactic dynamics
-  - milky way
+  - Uncertainty quantification
+
 authors:
   - name: Troy Dasher
     orcid: 0009-0001-4814-2185
-    equal-contrib: true
-    affiliation: "1, 2" 
-  - name: Kyle Godbey
-    orcid:
-    equal-contrib: true 
-    affiliation: 1
-  - name: An Le
-    corresponding: true 
     affiliation: "1, 2"
+  - name: Kyle Godbey
+    affiliation: "1"
+  - name: An Le
+    corresponding: true
+    affiliation: "1, 2"
+
 affiliations:
- - name: Facility for Rare Isotope Beams, Michigan State University, East Lansing, Michigan 48824, USA
-   index: 1
- - name: Department of Physics and Astronomy, Michigan State University, East Lansing, Michigan 48824, USA
-   index: 2
-date: 13 August 2017
-bibliography:
+  - name: Facility for Rare Isotope Beams, Michigan State University, East Lansing, MI 48824, USA
+    index: 1
+  - name: Department of Physics and Astronomy, Michigan State University, East Lansing, MI 48824, USA
+    index: 2
+
+date: 2026-01-21
+
+bibliography: 
+---
 
 
 # Summary
