@@ -43,10 +43,10 @@ The package is designed for scientific applications in which models are defined 
 pybmc is implemented in Python with minimal dependencies and is intended to integrate naturally into existing scientific workflows. While motivated by applications in nuclear physics, the package is applicable to a broad class of problems involving ensemble modeling and uncertainty-aware prediction.
 
 
-# Statement of need
+# Statement of need - An
 A section that clearly illustrates the research purpose of the software and places it in the context of related work. This should clearly state what problems the software is designed to solve, who the target audience is, and its relation to other work.
 
-# State of the fields
+# State of the fields - KYLE
 A description of how this software compares to other commonly-used packages in the research area. If related tools exist, provide a clear “build vs. contribute” justification explaining your unique scholarly contribution and why existing alternatives are insufficient.
 
 # Software design
@@ -59,15 +59,15 @@ Data management is handled by the Dataset class, which provides utilities for lo
 
 The BMC workflow is encapsulated in the BayesianModelCombination class, which serves as the main area for BMC. Rather than embedding certain functions directly in the class, supporting functionality such as sampling and uncertainty quantification is factored into helper modules. This design keeps the core workflow explicit and composable, emphasizes clarity in the training–prediction–uncertainty pipeline, and allows individual components to be modified or replaced without restructuring the overall package.
 
-# Research impact statement
+# Research impact statement - KYLE
 Evidence of realized impact (publications, external use, integrations) or credible near-term significance (benchmarks, reproducible materials, community-readiness signals). The evidence should be compelling and specific, not aspirational.
 
-# Mathematics (some formal theory here?)
+# Mathematics (some formal theory here?) - I think we can just include the documentation already on the Github
 
 
 # Figures (?)
 
-# AI usage disclosure
+# AI usage disclosure - We should each contribute what we used AI for
 Transparent disclosure of any use of generative AI in the software creation, documentation, or paper authoring. If no AI tools were used, state this explicitly. If AI tools were used, describe how they were used and how the quality and correctness of AI-generated content was verified.
 
 # Acknowledgments
