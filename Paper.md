@@ -16,6 +16,7 @@ authors:
     orcid: 0009-0001-4814-2185
     affiliation: "1, 2"
   - name: Kyle Godbey
+    orcid: 0000-0003-0622-3646
     affiliation: "1"
   - name: An Le
     corresponding: true
@@ -29,7 +30,7 @@ affiliations:
 
 date: 2026-01-21
 
-bibliography: 
+bibliography: paper.bib
 ---
 
 
@@ -49,6 +50,8 @@ A section that clearly illustrates the research purpose of the software and plac
 # State of the fields - KYLE
 A description of how this software compares to other commonly-used packages in the research area. If related tools exist, provide a clear “build vs. contribute” justification explaining your unique scholarly contribution and why existing alternatives are insufficient.
 
+This package represents the first user-focused software implementation of the model orthogonalization and combination strategy detailed in [cite]. While there exist other Bayesian model mixing software, including the Taweret software package [cite Taweret JOSS], the current package is primarily designed to be used in scenarios where practicioners have precomputed databases of model predictions (with or without uncertainties) and wish to combine the results efficiently without needing to run additional simulations. This is particularly beneficial in nuclear physics, for instance, where global calculations of nuclear properties for all possible isotopes is computationally demanding. 
+
 # Software design
 An explanation of the trade-offs you weighed, the design/architecture you chose, and why it matters for your research application. This should demonstrate meaningful design thinking beyond a superficial code structure description.
 
@@ -59,8 +62,11 @@ Data management is handled by the Dataset class, which provides utilities for lo
 
 The BMC workflow is encapsulated in the BayesianModelCombination class, which serves as the main area for BMC. Rather than embedding certain functions directly in the class, supporting functionality such as sampling and uncertainty quantification is factored into helper modules. This design keeps the core workflow explicit and composable, emphasizes clarity in the training–prediction–uncertainty pipeline, and allows individual components to be modified or replaced without restructuring the overall package.
 
-# Research impact statement - KYLE
-Evidence of realized impact (publications, external use, integrations) or credible near-term significance (benchmarks, reproducible materials, community-readiness signals). The evidence should be compelling and specific, not aspirational.
+# Research impact statement
+
+The original methodology was published in a peer-reviewed journal [cite] and the first application of the methodolgy has also recently been published in an analysis of new experimental data from the Facility for Rare Isotope Beams [cite].
+Once the package was completed, it began replacing the original, bespoke implementation in new scientific works including a study on Q-alpha trends in superheavy nuclei, the impact of nuclear uncertainties in r-process nucleosynthesis, and a systematic study of charge radii. Students involved in these projects have presented results obtained using the software at the American Physical Society's annual Division of Nuclear Physics meeting and at presentations locally.
+The package has also been adopted for release with the Bayesian Analysis for Nuclear Dynamics collaboration's V0.5 release and disseminated broadly to the nuclear physics community.
 
 # Mathematics (some formal theory here?) - I think we can just include the documentation already on the Github
 
@@ -68,7 +74,9 @@ Evidence of realized impact (publications, external use, integrations) or credib
 # Figures (?)
 
 # AI usage disclosure - We should each contribute what we used AI for
-Transparent disclosure of any use of generative AI in the software creation, documentation, or paper authoring. If no AI tools were used, state this explicitly. If AI tools were used, describe how they were used and how the quality and correctness of AI-generated content was verified.
+
+Generative AI was used in the creation of a package template early in the development process and during development via inline autocomplete within the developers' editors. No code was adopted without human oversight and our metric for correctness was defined by detailed numerical comparison to the bespoke implementation already published in [cite].
+AI tools were also used to expand the package documentation and write additional tests, with the resulting documentation going through a round of human review for completeness, correctness, and accessibility.
 
 # Acknowledgments
 
@@ -88,62 +96,6 @@ Example paper.bib file:
   	Year = 2017
 }
 
-@book{Binney:2008,
-  	url = {http://adsabs.harvard.edu/abs/2008gady.book.....B},
-  	Author = {{Binney}, J. and {Tremaine}, S.},
-  	Booktitle = {Galactic Dynamics: Second Edition, by James Binney and Scott Tremaine.~ISBN 978-0-691-13026-2 (HB).~Published by Princeton University Press, Princeton, NJ USA, 2008.},
-  	Publisher = {Princeton University Press},
-  	Title = {{Galactic Dynamics: Second Edition}},
-  	Year = 2008
-}
 
-@article{gaia,
-    author = {{Gaia Collaboration}},
-    title = "{The Gaia mission}",
-    journal = {Astronomy and Astrophysics},
-    archivePrefix = "arXiv",
-    eprint = {1609.04153},
-    primaryClass = "astro-ph.IM",
-    keywords = {space vehicles: instruments, Galaxy: structure, astrometry, parallaxes, proper motions, telescopes},
-    year = 2016,
-    month = nov,
-    volume = 595,
-    doi = {10.1051/0004-6361/201629272},
-    url = {http://adsabs.harvard.edu/abs/2016A%26A...595A...1G},
-}
-
-@article{astropy,
-    author = {{Astropy Collaboration}},
-    title = "{Astropy: A community Python package for astronomy}",
-    journal = {Astronomy and Astrophysics},
-    archivePrefix = "arXiv",
-    eprint = {1307.6212},
-    primaryClass = "astro-ph.IM",
-    keywords = {methods: data analysis, methods: miscellaneous, virtual observatory tools},
-    year = 2013,
-    month = oct,
-    volume = 558,
-    doi = {10.1051/0004-6361/201322068},
-    url = {http://adsabs.harvard.edu/abs/2013A%26A...558A..33A}
-}
-
-@article{Hunt:2025,
-  author = {{Hunt}, Jason A.~S. and {Vasiliev}, Eugene},
-  title = {Milky Way dynamics in light of Gaia},
-  journal = {New Astronomy Reviews},
-  year = 2025,
-  volume = 98,
-  doi = {10.1016/j.newar.2024.101721},
-  url = {https://www.sciencedirect.com/science/article/pii/S1387647324000289}
-}
-
-@misc{fidgit,
-  author = {A. M. Smith and K. Thaney and M. Hahnel},
-  title = {Fidgit: An ungodly union of GitHub and Figshare},
-  year = {2020},
-  publisher = {GitHub},
-  journal = {GitHub repository},
-  url = {https://github.com/arfon/fidgit}
-}
 
 
