@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 import os
-from .inference_utils import gibbs_sampler,  USVt_hat_extraction
+from .inference_utils import gibbs_sampler, gibbs_sampler_simplex, USVt_hat_extraction
 from .sampling_utils import coverage, rndm_m_random_calculator
 
 
@@ -16,7 +16,9 @@ class BayesianModelCombination:
     + Predictions for certain isotopes.
     """
 
-    def __init__(self, models_list, data_dict, truth_column_name, weights=None):
+    VALID_CONSTRAINTS = ("unconstrained", "simplex")
+
+    def __init__(self, models_list, data_dict, truth_column_name, weights=None, constraint="unconstrained"):
         """ 
         Initialize the BayesianModelCombination class.
 
@@ -24,18 +26,31 @@ class BayesianModelCombination:
         :param data_dict: Dictionary from `load_data()` where each key is a model name and each value is a DataFrame of properties
         :param truth_column_name: Name of the column containing the truth values.
         :param weights: Optional initial weights for the models.
+        :param constraint: Weight constraint mode. Options:
+            - ``"unconstrained"`` (default): No constraints on model weights.
+            - ``"simplex"``: Forces weights to lie on the probability simplex
+              (each weight between 0 and 1, weights sum to 1). Uses a
+              Metropolis-within-Gibbs sampler to enforce the constraint.
         """
 
         if not isinstance(models_list, list) or not all(isinstance(model, str) for model in models_list):
             raise ValueError("The 'models' should be a list of model names (strings) for Bayesian Combination.")    
         if not isinstance(data_dict, dict) or not all(isinstance(df, pd.DataFrame) for df in data_dict.values()):
             raise ValueError("The 'data_dict' should be a dictionary of pandas DataFrames, one per property.")
+        if constraint not in self.VALID_CONSTRAINTS:
+            raise ValueError(
+                f"Invalid constraint '{constraint}'. "
+                f"Must be one of {self.VALID_CONSTRAINTS}."
+            )
 
         self.data_dict = data_dict 
         self.models_list = models_list 
         self.models = [m for m in models_list if m != 'truth']
         self.weights = weights if weights is not None else None 
         self.truth_column_name = truth_column_name
+        self.constraint = constraint
+        self.samples = None
+        self.Vt_hat = None
 
 
     def orthogonalize(self, property, train_df, components_kept):
@@ -85,27 +100,61 @@ class BayesianModelCombination:
         """
         Train the model combination using training data and optional training parameters.
 
-        :param training_data: Placeholder (not used).
         :param training_options: Dictionary of training options. Keys:
             - 'iterations': (int) Number of Gibbs iterations (default 50000)
+            - 'sampler': (str) Override the constraint mode for this training run.
+              ``"unconstrained"`` or ``"simplex"``. If not provided, uses the
+              instance-level ``self.constraint`` set at initialization.
             - 'b_mean_prior': (np.ndarray) Prior mean vector (default zeros)
+              *(unconstrained sampler only)*
             - 'b_mean_cov': (np.ndarray) Prior covariance matrix (default diag(S_hat²))
+              *(unconstrained sampler only)*
             - 'nu0_chosen': (float) Degrees of freedom for variance prior (default 1.0)
             - 'sigma20_chosen': (float) Prior variance (default 0.02)
+            - 'burn': (int) Burn-in iterations (default 10000)
+              *(simplex sampler only)*
+            - 'stepsize': (float) Proposal step size (default 0.001)
+              *(simplex sampler only)*
         """
         if training_options is None:
             training_options = {}
 
+        # Determine which sampler to use: training_options overrides instance default
+        sampler_mode = training_options.get('sampler', self.constraint)
+        if sampler_mode not in self.VALID_CONSTRAINTS:
+            raise ValueError(
+                f"Invalid sampler '{sampler_mode}'. "
+                f"Must be one of {self.VALID_CONSTRAINTS}."
+            )
+
         iterations = training_options.get('iterations', 50000)
         num_components = self.U_hat.shape[1]
         S_hat = self.S_hat
-
-        b_mean_prior = training_options.get('b_mean_prior', np.zeros(num_components))
-        b_mean_cov = training_options.get('b_mean_cov', np.diag(S_hat**2))
         nu0_chosen = training_options.get('nu0_chosen', 1.0)
         sigma20_chosen = training_options.get('sigma20_chosen', 0.02)
 
-        self.samples = gibbs_sampler(self.centered_experiment_train, self.U_hat, iterations, [b_mean_prior, b_mean_cov, nu0_chosen, sigma20_chosen])
+        if sampler_mode == "simplex":
+            burn = training_options.get('burn', 10000)
+            stepsize = training_options.get('stepsize', 0.001)
+            self.samples = gibbs_sampler_simplex(
+                self.centered_experiment_train,
+                self.U_hat,
+                self.Vt_hat,
+                self.S_hat,
+                iterations,
+                [nu0_chosen, sigma20_chosen],
+                burn=burn,
+                stepsize=stepsize,
+            )
+        else:
+            b_mean_prior = training_options.get('b_mean_prior', np.zeros(num_components))
+            b_mean_cov = training_options.get('b_mean_cov', np.diag(S_hat**2))
+            self.samples = gibbs_sampler(
+                self.centered_experiment_train,
+                self.U_hat,
+                iterations,
+                [b_mean_prior, b_mean_cov, nu0_chosen, sigma20_chosen],
+            )
 
 
 
@@ -185,7 +234,37 @@ class BayesianModelCombination:
 
         return coverage(np.arange(0, 101, 5), rndm_m, df, truth_column=self.truth_column_name)
 
+    def get_weights(self, summary=True):
+        """
+        Compute model weights from posterior samples.
 
+        Converts the sampled coefficient vectors (beta) into model weights
+        using the transformation ``omega = beta @ Vt_hat + 1/M``, where M is
+        the number of models.  In simplex-constrained mode, all weights are
+        guaranteed to be non-negative and sum to 1.
+
+        :param summary: If True (default), return a dictionary with
+            ``'mean'``, ``'std'``, ``'median'`` arrays keyed by statistic.
+            If False, return the full ``(n_samples, n_models)`` weight matrix.
+        :return: Weight summary dict or full weight matrix.
+        :raises ValueError: If ``train()`` has not been called.
+        """
+        if self.samples is None or self.Vt_hat is None:
+            raise ValueError("Must call `orthogonalize()` and `train()` before getting weights.")
+
+        betas = self.samples[:, :-1]
+        n_models = self.Vt_hat.shape[1]
+        default_weights = np.full(n_models, 1.0 / n_models)
+        weight_matrix = betas @ self.Vt_hat + default_weights
+
+        if summary:
+            return {
+                "mean": np.mean(weight_matrix, axis=0),
+                "std": np.std(weight_matrix, axis=0),
+                "median": np.median(weight_matrix, axis=0),
+                "models": self.models,
+            }
+        return weight_matrix
 
 
 

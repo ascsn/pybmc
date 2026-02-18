@@ -10,7 +10,7 @@ Classes:
 
 from .data import Dataset
 from .bmc import BayesianModelCombination
-from .inference_utils import gibbs_sampler, USVt_hat_extraction
+from .inference_utils import gibbs_sampler, gibbs_sampler_simplex, USVt_hat_extraction
 from .sampling_utils import coverage
 
 
@@ -19,6 +19,7 @@ __all__ = [
     "Dataset",
     "BayesianModelCombination",
     "gibbs_sampler",
+    "gibbs_sampler_simplex",
     "USVt_hat_extraction",
     "coverage",
 ]

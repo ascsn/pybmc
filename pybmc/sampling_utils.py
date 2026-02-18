@@ -54,7 +54,9 @@ def rndm_m_random_calculator(filtered_model_predictions, samples, Vt_hat):
     np.random.seed(142858)
     rng = np.random.default_rng()
 
-    theta_rand_selected = rng.choice(samples, 10000, replace=False)
+    n_draws = min(10000, len(samples))
+    replace = len(samples) < 10000
+    theta_rand_selected = rng.choice(samples, n_draws, replace=replace)
 
     # Extract betas and noise std deviations
     betas = theta_rand_selected[:, :-1]  # shape: (10000, num_models - 1)

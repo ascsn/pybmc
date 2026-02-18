@@ -54,3 +54,30 @@ The standard Gibbs sampler in `pybmc` assumes a Gaussian likelihood and conjugat
 ### Gibbs Sampler with Simplex Constraints
 
 `pybmc` also provides a Gibbs sampler that enforces simplex constraints on the model weights (i.e., \(\sum w_k = 1\) and \(w_k \ge 0\)). This is achieved by performing a random walk in the space of the transformed parameters and using a Metropolis-Hastings step to accept or reject proposals that fall outside the valid simplex region.
+
+#### When to Use Each Mode
+
+| Mode | Description | Use When |
+|------|-------------|----------|
+| **Unconstrained** (default) | Weights can take any real value | Maximum flexibility; some models may get negative weights to cancel out biases |
+| **Simplex** | Weights satisfy \(w_k \ge 0\) and \(\sum w_k = 1\) | You need interpretable weights that form a proper mixture; predictions should stay within the range of individual models |
+
+#### Simplex Constraint Implementation
+
+The simplex constraint is enforced through a Metropolis-within-Gibbs algorithm. In the SVD-reduced coefficient space, the relationship between the regression coefficients \(\boldsymbol{\beta}\) and the model weights \(\boldsymbol{\omega}\) is:
+
+\[
+\omega_k = \sum_{j=1}^m \beta_j \hat{V}_{jk} + \frac{1}{K}
+\]
+
+where \(\hat{V}\) contains the (normalized) right singular vectors and \(K\) is the number of models. The term \(\frac{1}{K}\) represents the equal-weight baseline.
+
+At each iteration, the algorithm:
+
+1. **Proposes** a new coefficient vector \(\boldsymbol{\beta}^*\) from a multivariate normal centered on the current value.
+2. **Projects** the proposal to weight space via \(\boldsymbol{\omega}^* = \boldsymbol{\beta}^* \hat{V} + \frac{1}{K}\).
+3. **Rejects** the proposal if any \(\omega_k^* < 0\) (the sum-to-one constraint is automatically satisfied by the SVD structure and the \(\frac{1}{K}\) offset).
+4. **Accepts** valid proposals with probability \(\min\!\bigl(1,\; \exp\!\bigl[\bigl(\ell(\boldsymbol{\beta}^*) - \ell(\boldsymbol{\beta})\bigr) / \sigma^2\bigr]\bigr)\), where \(\ell\) is the log-likelihood.
+5. **Samples** the error variance \(\sigma^2\) from its inverse-gamma full conditional.
+
+The `burn` parameter controls the number of burn-in iterations discarded before collecting samples, and the `stepsize` parameter scales the proposal covariance matrix to tune the acceptance rate.

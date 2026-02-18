@@ -112,6 +112,83 @@ With the data prepared and the model orthogonalized, we can train the model comb
 bmc.train(training_options={"iterations": 50000, "sampler": "gibbs_sampling"})
 ```
 
+### Simplex Constraint Mode
+
+By default, `pybmc` uses an unconstrained Gibbs sampler where model weights can take
+any real value.  If you want to enforce that the weights lie on the **probability
+simplex** — meaning each weight is between 0 and 1 and the weights sum to 1 — you can
+enable the simplex constraint mode.
+
+!!! tip "When to Use Simplex Constraints"
+    Use simplex constraints when you want the model combination to behave as a
+    **proper weighted average** of the constituent models.  This is appropriate when:
+
+    - You want each model to contribute non-negatively to the prediction.
+    - The combined prediction should remain within the range spanned by the individual models.
+    - Physical interpretability of the weights matters for your application.
+
+    The unconstrained mode is more flexible and may yield better predictive performance
+    when some models systematically over- or under-predict, since negative weights can
+    partially cancel out biased models.
+
+There are two ways to enable simplex constraints:
+
+**Option 1: Set at initialization (recommended when you always want simplex)**
+
+```python
+bmc = BayesianModelCombination(
+    models_list=["FRDM12", "HFB24", "D1M", "UNEDF1", "BCPM"],
+    data_dict=data_dict,
+    truth_column_name="AME2020",
+    constraint="simplex",   # <-- weights constrained to [0, 1], sum to 1
+)
+
+bmc.orthogonalize("BE", train_df, components_kept=3)
+bmc.train(training_options={
+    "iterations": 50000,
+    "burn": 10000,        # burn-in iterations for the Metropolis step
+    "stepsize": 0.001,    # proposal step size
+})
+```
+
+**Option 2: Override per training call**
+
+```python
+# Initialize with default unconstrained mode
+bmc = BayesianModelCombination(
+    models_list=["FRDM12", "HFB24", "D1M", "UNEDF1", "BCPM"],
+    data_dict=data_dict,
+    truth_column_name="AME2020",
+)
+
+bmc.orthogonalize("BE", train_df, components_kept=3)
+
+# Override to simplex for this specific training run
+bmc.train(training_options={
+    "iterations": 50000,
+    "sampler": "simplex",
+    "burn": 10000,
+    "stepsize": 0.001,
+})
+```
+
+### Inspecting Model Weights
+
+After training, you can inspect the inferred model weights using `get_weights()`:
+
+```python
+# Get a summary (mean, std, median per model)
+summary = bmc.get_weights()
+for model, mean_w, std_w in zip(summary["models"], summary["mean"], summary["std"]):
+    print(f"  {model}: {mean_w:.4f} ± {std_w:.4f}")
+
+# Get the full weight matrix (n_samples × n_models) for custom analysis
+weight_matrix = bmc.get_weights(summary=False)
+```
+
+In simplex mode, every row of the weight matrix is guaranteed to satisfy
+\(w_k \ge 0\) and \(\sum_k w_k = 1\).
+
 ## 4. Make Predictions
 
 After training, we can use the `predict` method to generate predictions with uncertainty quantification. The method returns the full posterior draws, as well as DataFrames for the lower, median, and upper credible intervals.
