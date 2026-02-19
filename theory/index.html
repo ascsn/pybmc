@@ -481,6 +481,30 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Gibbs Sampler with Simplex Constraints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use-each-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      When to Use Each Mode
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#simplex-constraint-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Simplex Constraint Implementation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -647,6 +671,30 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Gibbs Sampler with Simplex Constraints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use-each-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      When to Use Each Mode
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#simplex-constraint-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Simplex Constraint Implementation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -707,6 +755,43 @@ X = U S V^T
 <p>The standard Gibbs sampler in <code>pybmc</code> assumes a Gaussian likelihood and conjugate priors for the model parameters. The algorithm iteratively samples from the full conditional distributions of the regression coefficients (related to the model weights) and the error variance.</p>
 <h3 id="gibbs-sampler-with-simplex-constraints">Gibbs Sampler with Simplex Constraints</h3>
 <p><code>pybmc</code> also provides a Gibbs sampler that enforces simplex constraints on the model weights (i.e., <span class="arithmatex">\(\sum w_k = 1\)</span> and <span class="arithmatex">\(w_k \ge 0\)</span>). This is achieved by performing a random walk in the space of the transformed parameters and using a Metropolis-Hastings step to accept or reject proposals that fall outside the valid simplex region.</p>
+<h4 id="when-to-use-each-mode">When to Use Each Mode</h4>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Description</th>
+<th>Use When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Unconstrained</strong> (default)</td>
+<td>Weights can take any real value</td>
+<td>Maximum flexibility; some models may get negative weights to cancel out biases</td>
+</tr>
+<tr>
+<td><strong>Simplex</strong></td>
+<td>Weights satisfy <span class="arithmatex">\(w_k \ge 0\)</span> and <span class="arithmatex">\(\sum w_k = 1\)</span></td>
+<td>You need interpretable weights that form a proper mixture; predictions should stay within the range of individual models</td>
+</tr>
+</tbody>
+</table>
+<h4 id="simplex-constraint-implementation">Simplex Constraint Implementation</h4>
+<p>The simplex constraint is enforced through a Metropolis-within-Gibbs algorithm. In the SVD-reduced coefficient space, the relationship between the regression coefficients <span class="arithmatex">\(\boldsymbol{\beta}\)</span> and the model weights <span class="arithmatex">\(\boldsymbol{\omega}\)</span> is:</p>
+<div class="arithmatex">\[
+\omega_k = \sum_{j=1}^m \beta_j \hat{V}_{jk} + \frac{1}{K}
+\]</div>
+<p>where <span class="arithmatex">\(\hat{V}\)</span> contains the (normalized) right singular vectors and <span class="arithmatex">\(K\)</span> is the number of models. The term <span class="arithmatex">\(\frac{1}{K}\)</span> represents the equal-weight baseline.</p>
+<p>At each iteration, the algorithm:</p>
+<ol>
+<li><strong>Proposes</strong> a new coefficient vector <span class="arithmatex">\(\boldsymbol{\beta}^*\)</span> from a multivariate normal centered on the current value.</li>
+<li><strong>Projects</strong> the proposal to weight space via <span class="arithmatex">\(\boldsymbol{\omega}^* = \boldsymbol{\beta}^* \hat{V} + \frac{1}{K}\)</span>.</li>
+<li><strong>Rejects</strong> the proposal if any <span class="arithmatex">\(\omega_k^* &lt; 0\)</span> (the sum-to-one constraint is automatically satisfied by the SVD structure and the <span class="arithmatex">\(\frac{1}{K}\)</span> offset).</li>
+<li><strong>Accepts</strong> valid proposals with probability <span class="arithmatex">\(\min\!\bigl(1,\; \exp\!\bigl[\bigl(\ell(\boldsymbol{\beta}^*) - \ell(\boldsymbol{\beta})\bigr) / \sigma^2\bigr]\bigr)\)</span>, where <span class="arithmatex">\(\ell\)</span> is the log-likelihood.</li>
+<li><strong>Samples</strong> the error variance <span class="arithmatex">\(\sigma^2\)</span> from its inverse-gamma full conditional.</li>
+</ol>
+<p>The <code>burn</code> parameter controls the number of burn-in iterations discarded before collecting samples, and the <code>stepsize</code> parameter scales the proposal covariance matrix to tune the acceptance rate.</p>
 
 
 
