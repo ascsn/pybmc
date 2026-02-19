@@ -22,7 +22,7 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libopenblas-dev libhdf5-dev
+        sudo apt-get install -y libopenblas-dev libhdf5-dev libbz2-dev liblzo2-dev libblosc-dev
     - name: Install Poetry
       run: pipx install poetry
     - name: Install dependencies
@@ -45,6 +45,10 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: "3.13"
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libopenblas-dev libhdf5-dev libbz2-dev liblzo2-dev libblosc-dev
     - name: Install dependencies
       run: |
         pipx install poetry
