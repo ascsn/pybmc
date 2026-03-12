@@ -35,24 +35,20 @@ bibliography: paper.bib
 
 
 # Summary
-A description of the high-level functionality and purpose of the software for a diverse, non-specialist audience.
+Bayesian model combination (BMC) provides a principled framework for combining predictions from multiple models while quantifying uncertainty. Unlike simple averaging methods, BMC explicitly accounts for correlations among models and infers optimal model weights through Bayesian inference, producing predictions with calibrated uncertainty estimates.
 
-pybmc is a Python package for Bayesian model combination (BMC), a Bayesian machine learning framework for combining predictions from multiple correlated models while quantifying predictive uncertainty. Unlike simple averaging, pybmc explicitly accounts for inter-model correlations and learns optimal model weights through Bayesian inference, yielding combined predictions with uncertainty estimates.
+The pybmc package implements this methodology in Python, allowing researchers to apply Bayesian model combination to ensembles of predictive models defined on a shared domain. The package is designed for applications in which different theoretical or computational models produce systematically different predictions.
 
-The package is designed for scientific applications in which models are defined on a shared domain but differ systematically in their assumptions, approximations, or parameterizations. pybmc provides a flexible API for data handling, orthogonalization, Gibbs sampling, and prediction with uncertainty quantification. 
-
-pybmc is implemented in Python with minimal dependencies and is intended to integrate naturally into existing scientific workflows. While motivated by applications in nuclear physics, the package is applicable to a broad class of problems involving ensemble modeling and uncertainty-aware prediction.
+By providing a lightweight and flexible interface for constructing model ensembles and generating uncertainty-aware predictions, pybmc makes Bayesian model combination accessible for research workflows. While motivated by applications in nuclear physics, the approach is general and applicable to a broad range of problems involving ensemble modeling and uncertainty-aware prediction.
 
 
 # Statement of need - An
 A section that clearly illustrates the research purpose of the software and places it in the context of related work. This should clearly state what problems the software is designed to solve, who the target audience is, and its relation to other work.
 
-# State of the fields - KYLE
-A description of how this software compares to other commonly-used packages in the research area. If related tools exist, provide a clear “build vs. contribute” justification explaining your unique scholarly contribution and why existing alternatives are insufficient.
-
+# State of the fields
 This package represents the first user-focused software implementation of the model orthogonalization and combination strategy detailed in [cite]. While there exist other Bayesian model mixing software, including the Taweret software package [cite Taweret JOSS], the current package is primarily designed to be used in scenarios where practicioners have precomputed databases of model predictions (with or without uncertainties) and wish to combine the results efficiently without needing to run additional simulations. This is particularly beneficial in nuclear physics, for instance, where global calculations of nuclear properties for all possible isotopes is computationally demanding. 
 
-# Software design
+# Structure
 An explanation of the trade-offs you weighed, the design/architecture you chose, and why it matters for your research application. This should demonstrate meaningful design thinking beyond a superficial code structure description.
 
 
@@ -68,12 +64,8 @@ The original methodology was published in a peer-reviewed journal [cite] and the
 Once the package was completed, it began replacing the original, bespoke implementation in new scientific works including a study on Q-alpha trends in superheavy nuclei, the impact of nuclear uncertainties in r-process nucleosynthesis, and a systematic study of charge radii. Students involved in these projects have presented results obtained using the software at the American Physical Society's annual Division of Nuclear Physics meeting and at presentations locally.
 The package has also been adopted for release with the Bayesian Analysis for Nuclear Dynamics collaboration's V0.5 release and disseminated broadly to the nuclear physics community.
 
-# Mathematics (some formal theory here?) - I think we can just include the documentation already on the Github
 
-
-# Figures (?)
-
-# AI usage disclosure - We should each contribute what we used AI for
+# AI usage disclosure
 
 Generative AI was used in the creation of a package template early in the development process and during development via inline autocomplete within the developers' editors. No code was adopted without human oversight and our metric for correctness was defined by detailed numerical comparison to the bespoke implementation already published in [cite].
 AI tools were also used to expand the package documentation and write additional tests, with the resulting documentation going through a round of human review for completeness, correctness, and accessibility.
@@ -81,20 +73,6 @@ AI tools were also used to expand the package documentation and write additional
 # Acknowledgments
 
 # Citations 
-
-Example paper.bib file:
-
-@article{Pearson:2017,
-  	url = {http://adsabs.harvard.edu/abs/2017arXiv170304627P},
-  	Archiveprefix = {arXiv},
-  	Author = {{Pearson}, S. and {Price-Whelan}, A.~M. and {Johnston}, K.~V.},
-  	Eprint = {1703.04627},
-  	Journal = {ArXiv e-prints},
-  	Keywords = {Astrophysics - Astrophysics of Galaxies},
-  	Month = mar,
-  	Title = {{Gaps in Globular Cluster Streams: Pal 5 and the Galactic Bar}},
-  	Year = 2017
-}
 
 
 
