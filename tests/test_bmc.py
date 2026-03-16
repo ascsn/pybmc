@@ -126,7 +126,7 @@ class TestBayesianModelCombination(unittest.TestCase):
         self.bmc.train()
         # Use all rows for prediction input
         X = self.df[["x", "y", "model1", "model2", "model3"]].copy()
-        rndm_m, lower_df, median_df, upper_df = self.bmc.predict(self.property)
+        rndm_m, lower_df, median_df, upper_df, weights = self.bmc.predict(self.property)
 
         self.assertEqual(rndm_m.shape[1], len(X))
         self.assertIn("Predicted_Lower", lower_df.columns)
@@ -160,7 +160,7 @@ class TestBayesianModelCombination(unittest.TestCase):
         bmc.train()
 
         # Perform prediction using property name
-        rndm_m, lower_df, median_df, upper_df = bmc.predict("property")
+        rndm_m, lower_df, median_df, upper_df, weights = bmc.predict("property")
 
         self.assertIsNotNone(rndm_m)
         self.assertIsInstance(lower_df, pd.DataFrame)
@@ -169,6 +169,7 @@ class TestBayesianModelCombination(unittest.TestCase):
         self.assertFalse(lower_df.empty)
         self.assertFalse(median_df.empty)
         self.assertFalse(upper_df.empty)
+        self.assertIsNotNone(weights)
         # Check domain columns are present
         for col in ["N", "Z"]:
             self.assertIn(col, lower_df.columns)
