@@ -25,7 +25,7 @@ authors:
     affiliation: "1, 2"
 
 affiliations:
-  - name: Facility for Rare Isotope Beams, Michigan State University, East Lansing, MI 48824, USA
+  - name: Facility for Rare Isotope Beams, Michigan State University, East Lansing, MI 48824, USA\\\\
     index: 1
     
   - name: Department of Physics and Astronomy, Michigan State University, East Lansing, MI 48824, USA
@@ -80,13 +80,13 @@ The overall workflow pipeline is designed to mirror typical scientific usage, st
 
 5. **Prediction and diagnostics.** Once the sampler has converged, the `predict` method projects the posterior weights back onto the original model space to generate posterior predictive draws for any property present in the original data dictionary, returning both the raw draws and summary DataFrames with median predictions and 95% credible intervals. The `evaluate` method uses the same predictive draws to compute empirical coverage over a grid of credible interval widths, providing a simple, model‑agnostic diagnostic of how well the Bayesian model combination captures the experimental truth where it is available.
 
-This layered architecture—data access and domain logic in `Dataset`, orthogonalization and sampling in `BayesianModelCombination`, and numerical routines in focused helper modules—was chosen to reflect how practitioners already work with precomputed model tables while making each step of the combination pipeline explicit, testable, and replaceable.
+This layered architecture-data access and domain logic in `Dataset`, orthogonalization and sampling in `BayesianModelCombination`, and numerical routines in focused helper modules—was chosen to reflect how practitioners already work with precomputed model tables while making each step of the combination pipeline explicit, testable, and replaceable.
 
 Users can adjust the workflow at several points. For example, users can modify or extend the sampling routines in pybmc.inference_utils (for example, to use the provided simplex‑constrained Gibbs sampler or custom MCMC kernels). The package is deliberately designed to be domain‑agnostic, so that the same architecture can be applied to any application where practitioners need to combine multiple, potentially correlated predictive models into a single, uncertainty‑quantified prediction.
 
 More detailed tutorials, additional examples, and a complete API reference are available in the online documentation:
 
-https://ascsn.github.io/pybmc/
+https://ascsn.github.io/pybmc/docs
 
 # Research impact statement
 
