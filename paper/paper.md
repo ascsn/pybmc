@@ -54,6 +54,10 @@ This package represents the first user-focused software implementation of the mo
 # Bayesian Model Combination - Pablo
 A section for some formal theory on BMC. Doesn't need to be too long, as we can point to the original paper or other documentation in the repo.
 
+Lets see, do equations work in here?
+
+$\phi_0$
+
 # Software design
 
 ## Class architecture
