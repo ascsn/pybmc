@@ -66,15 +66,23 @@ The combined model is then constructed as a linear expansion in principal compon
 
 $f^\dagger(x; \mathbf{b}) = \phi_0(x) + \sum_{j=1}^{p} b_j , \phi_j(x)$, 
 
-where $\mathbf{b} = (b_1, \ldots, b_r)$ are coefficients to be inferred from data. Because each basis function $\phi_j$ is itself a linear combination of the original models, this representation defines an implicit combination of the model ensemble.
+where $\mathbf{b} = (b_1, \ldots, b_r)$ are coefficients to be inferred from data. Because each basis function $\phi_j$ is itself a linear combination of the original models, this representation its itself a (restricted) combination of the model ensemble.
 
 The relationship between the combined model and experimental observations $y_i$ is described through $y_i = f^\dagger(x_i; \mathbf{b}) + \epsilon_i$, with $\epsilon_i \sim \mathcal{N}(0, \sigma^2)$, where $\sigma$ represents the typical scale of the discrepancy between the model and the data and is inferred within the Bayesian framework.
 
-Given a set of observations $\mathbf{y}$, the likelihood function takes the form $p(\mathbf{y} \mid \mathbf{b}, \sigma) \propto \prod_{i=1}^{n} \frac{1}{\sigma} \exp\left( -\frac{\left(f^\dagger(x_i; \mathbf{b}) - y_i\right)^2}{2\sigma^2} \right)$. Combining this likelihood with suitable prior distributions for $\mathbf{b}$ and $\sigma$ yields the posterior distribution $p(\mathbf{b}, \sigma \mid \mathbf{y})$, which is sampled in pybmc using a Gibbs sampling procedure.
+Given a set of observations $\mathbf{y}$, the likelihood function takes the form:
 
-Predictions at new inputs are obtained by evaluating the combined model across posterior samples, resulting in a posterior predictive distribution $p(y(x) \mid \mathbf{y}) = \int p(y(x) \mid \mathbf{b}, \sigma), p(\mathbf{b}, \sigma \mid \mathbf{y}) , d\mathbf{b}, d\sigma$, from which summary statistics such as median predictions and credible intervals can be computed.
+$p(\mathbf{y} \mid \mathbf{b}, \sigma) \propto \prod_{i=1}^{n} \frac{1}{\sigma} \exp\left( -\frac{\left(f^\dagger(x_i; \mathbf{b}) - y_i\right)^2}{2\sigma^2} \right)$. 
 
-This formulation allows the BMC approach to reduce the effective dimensionality of the model space through orthogonalization, limit the impact of correlated or redundant models, and produce uncertainty-calibrated predictions by propagating posterior uncertainty through the combined model. A more detailed discussion of the methodology can be found in [@PhysRevResearch.6.033266].
+Combining this likelihood with suitable prior distributions for $\mathbf{b}$ and $\sigma$ yields the posterior distribution $p(\mathbf{b}, \sigma \mid \mathbf{y})$, which is sampled in pybmc using a Gibbs sampling procedure.
+
+Predictions at new inputs are obtained by evaluating the combined model across posterior samples, resulting in a posterior predictive distribution:
+
+$p(y(x) \mid \mathbf{y}) = \int p(y(x) \mid \mathbf{b}, \sigma), p(\mathbf{b}, \sigma \mid \mathbf{y}) , d\mathbf{b}, d\sigma$, 
+
+from which summary statistics such as median predictions and credible intervals can be computed.
+
+This formulation allows the BMC approach to reduce the effective dimensionality of the model space through orthogonalization, limit the impact of correlated or redundant models, and produce uncertainty-calibrated predictions. A more detailed discussion of the methodology can be found in [@PhysRevResearch.6.033266].
 
 
 # Software design
