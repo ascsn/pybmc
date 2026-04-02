@@ -52,11 +52,22 @@ A section that clearly illustrates the research purpose of the software and plac
 This package represents the first user-focused software implementation of the model orthogonalization and combination strategy detailed in [@PhysRevResearch.6.033266]. While there exist other Bayesian model mixing software, including the Taweret software package [@ingles2024taweret], the current package is primarily designed to be used in scenarios where practitioners have precomputed databases of model predictions (with or without uncertainties) and wish to combine the results efficiently without needing to run additional simulations. This is particularly beneficial in nuclear physics, for instance, where global calculations of nuclear properties for all possible isotopes are computationally demanding. 
 
 # Bayesian Model Combination - Pablo
-A section for some formal theory on BMC. Doesn't need to be too long, as we can point to the original paper or other documentation in the repo.
+Bayesian model combination (BMC) provides a framework for constructing a single predictive model from a collection of $m$ existing models $\mathcal{M}_k$, each producing predictions $y_k(x)$ for an observable defined over a common domain. The objective is to leverage the collective information contained in the ensemble while accounting for correlations and redundancies among models, which often arise when models share theoretical assumptions or calibration data.
 
-Lets see, do equations work in here?
+We begin by assembling the predictions of the $m$ models over $n$ input locations into a matrix $X \in \mathbb{R}^{n \times m}$, where each column corresponds to a model and each row corresponds to a point in the domain. From this matrix, we define the ensemble mean prediction $\phi_0(x_i) = \frac{1}{m} \sum_{k=1}^{m} y_k(x_i)$, which captures the common structure shared across models. Subtracting this mean from the model predictions produces a centered representation that isolates the deviations between models.
 
-$\phi_0$
+To identify the dominant patterns in these deviations, we perform a singular value decomposition (SVD) of the centered matrix and retain a truncated set of components. This procedure yields an orthogonal basis ${\phi_j(x)}_{j=1}^r$ that spans the principal directions of variability among the models, with $r \leq m$ controlling the effective dimensionality of the representation. This step reduces the dimensionality of the problem and mitigates the impact of redundant or highly correlated models by filtering out directions associated with minor variations.
+
+The combined model is then constructed as a linear expansion in this reduced basis, $f^\dagger(x; \mathbf{b}) = \phi_0(x) + \sum_{j=1}^{r} b_j , \phi_j(x)$, where $\mathbf{b} = (b_1, \ldots, b_r)$ are coefficients to be inferred from data. Because each basis function $\phi_j$ is itself a linear combination of the original models, this representation defines an implicit combination of the model ensemble.
+
+The relationship between the combined model and experimental observations $y_i$ is described through $y_i = f^\dagger(x_i; \mathbf{b}) + \epsilon_i$, with $\epsilon_i \sim \mathcal{N}(0, \sigma^2)$, where $\sigma$ represents the typical scale of the discrepancy between the model and the data and is inferred within the Bayesian framework.
+
+Given a set of observations $\mathbf{y}$, the likelihood function takes the form $p(\mathbf{y} \mid \mathbf{b}, \sigma) \propto \prod_{i=1}^{n} \frac{1}{\sigma} \exp\left( -\frac{\left(f^\dagger(x_i; \mathbf{b}) - y_i\right)^2}{2\sigma^2} \right)$. Combining this likelihood with suitable prior distributions for $\mathbf{b}$ and $\sigma$ yields the posterior distribution $p(\mathbf{b}, \sigma \mid \mathbf{y})$, which is sampled in pybmc using a Gibbs sampling procedure.
+
+Predictions at new inputs are obtained by evaluating the combined model across posterior samples, resulting in a posterior predictive distribution $p(y(x) \mid \mathbf{y}) = \int p(y(x) \mid \mathbf{b}, \sigma), p(\mathbf{b}, \sigma \mid \mathbf{y}) , d\mathbf{b}, d\sigma$, from which summary statistics such as median predictions and credible intervals can be computed.
+
+This formulation allows the BMC approach to reduce the effective dimensionality of the model space through orthogonalization, limit the impact of correlated or redundant models, and produce uncertainty-calibrated predictions by propagating posterior uncertainty through the combined model. A more detailed discussion of the methodology can be found in [@PhysRevResearch.6.033266].
+
 
 # Software design
 
