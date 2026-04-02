@@ -62,7 +62,11 @@ which captures the common structure shared across models. Subtracting this mean 
 
 To identify the dominant patterns in these deviations, we perform a singular value decomposition (SVD) of the centered matrix and retain a truncated set of components. This procedure yields an orthogonal basis $\phi_j(x)$ that spans the principal directions of variability among the models, with $j =1, ..., p$ with $p\leq m$ controlling the effective dimensionality of the representation. This step reduces the dimensionality of the problem and mitigates the impact of redundant or highly correlated models by filtering out directions associated with minor variations.
 
-The combined model is then constructed as a linear expansion in this reduced basis, $f^\dagger(x; \mathbf{b}) = \phi_0(x) + \sum_{j=1}^{r} b_j , \phi_j(x)$, where $\mathbf{b} = (b_1, \ldots, b_r)$ are coefficients to be inferred from data. Because each basis function $\phi_j$ is itself a linear combination of the original models, this representation defines an implicit combination of the model ensemble.
+The combined model is then constructed as a linear expansion in principal components:
+
+$f^\dagger(x; \mathbf{b}) = \phi_0(x) + \sum_{j=1}^{p} b_j , \phi_j(x)$, 
+
+where $\mathbf{b} = (b_1, \ldots, b_r)$ are coefficients to be inferred from data. Because each basis function $\phi_j$ is itself a linear combination of the original models, this representation defines an implicit combination of the model ensemble.
 
 The relationship between the combined model and experimental observations $y_i$ is described through $y_i = f^\dagger(x_i; \mathbf{b}) + \epsilon_i$, with $\epsilon_i \sim \mathcal{N}(0, \sigma^2)$, where $\sigma$ represents the typical scale of the discrepancy between the model and the data and is inferred within the Bayesian framework.
 
