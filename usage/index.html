@@ -431,6 +431,24 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#heteroscedastic-error-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      Heteroscedastic Error Models
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reproducibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reproducibility
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#inspecting-model-weights" class="md-nav__link">
     <span class="md-ellipsis">
       Inspecting Model Weights
@@ -668,6 +686,24 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#heteroscedastic-error-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      Heteroscedastic Error Models
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reproducibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reproducibility
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#inspecting-model-weights" class="md-nav__link">
     <span class="md-ellipsis">
       Inspecting Model Weights
@@ -868,15 +904,134 @@ partially cancel out biased models.</p>
 <a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>    <span class="s2">&quot;stepsize&quot;</span><span class="p">:</span> <span class="mf">0.001</span><span class="p">,</span>
 <a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="p">})</span>
 </code></pre></div>
+<h3 id="heteroscedastic-error-models">Heteroscedastic Error Models</h3>
+<p>By default, <code>pybmc</code> assumes <strong>homoscedastic</strong> noise: a single constant variance
+for every data point. In practice the combined model is often much more
+uncertain far from the training data (extrapolation) or where the constituent
+models disagree. Heteroscedastic error models let the noise variance depend on
+two per-point metrics:</p>
+<ul>
+<li><code>pc_dist</code> (<span class="arithmatex">\(d_i\)</span>): distance of point <span class="arithmatex">\(i\)</span> from the training-data centroid in
+  principal-component space — grows away from the fitted region.</li>
+<li><code>model_var</code> (<span class="arithmatex">\(v_i\)</span>): variance among the individual model predictions at
+  point <span class="arithmatex">\(i\)</span> — grows where the models disagree.</li>
+</ul>
+<p>Both metrics are min-max normalized with the <em>training</em> values, so
+extrapolated points can exceed 1. Every error model is parametrized on the
+variance (<span class="arithmatex">\(\sigma^2\)</span>) scale and shares the single likelihood
+<span class="arithmatex">\(y_i \sim \mathcal{N}(X_i \cdot b,\, \sigma_i^2)\)</span>; the homoscedastic model is
+simply the special case whose variance basis is the constant term alone, so
+it is trained with the same sampler rather than a separate one. The
+available error models are:</p>
+<table>
+<thead>
+<tr>
+<th><code>error_model</code></th>
+<th>Variance <span class="arithmatex">\(\sigma_i^2\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>homoscedastic</code> (default)</td>
+<td><span class="arithmatex">\(\sigma^2\)</span></td>
+</tr>
+<tr>
+<td><code>hetero_pc_dist</code></td>
+<td><span class="arithmatex">\(\alpha + \beta d_i\)</span></td>
+</tr>
+<tr>
+<td><code>hetero_model_var</code></td>
+<td><span class="arithmatex">\(\alpha + \beta v_i\)</span></td>
+</tr>
+<tr>
+<td><code>hetero_pc_dist_quad</code></td>
+<td><span class="arithmatex">\(\alpha + \beta_1 d_i + \beta_2 d_i^2\)</span></td>
+</tr>
+<tr>
+<td><code>hetero_model_var_quad</code></td>
+<td><span class="arithmatex">\(\alpha + \beta_1 v_i + \beta_2 v_i^2\)</span></td>
+</tr>
+<tr>
+<td><code>hetero_combined_linear</code></td>
+<td><span class="arithmatex">\(\alpha + \beta_d d_i + \beta_m v_i\)</span></td>
+</tr>
+<tr>
+<td><code>hetero_combined_quadratic</code></td>
+<td><span class="arithmatex">\(\alpha + \beta_{d1} d_i + \beta_{d2} d_i^2 + \beta_{m1} v_i + \beta_{m2} v_i^2\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>Select an error model at initialization (or override per training run with
+<code>training_options={"error_model": ...}</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">bmc</span> <span class="o">=</span> <span class="n">BayesianModelCombination</span><span class="p">(</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">models_list</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;FRDM12&quot;</span><span class="p">,</span> <span class="s2">&quot;HFB24&quot;</span><span class="p">,</span> <span class="s2">&quot;D1M&quot;</span><span class="p">,</span> <span class="s2">&quot;UNEDF1&quot;</span><span class="p">,</span> <span class="s2">&quot;BCPM&quot;</span><span class="p">],</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">data_dict</span><span class="o">=</span><span class="n">data_dict</span><span class="p">,</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">truth_column_name</span><span class="o">=</span><span class="s2">&quot;AME2020&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="n">error_model</span><span class="o">=</span><span class="s2">&quot;hetero_model_var&quot;</span><span class="p">,</span>   <span class="c1"># variance grows with model spread</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="p">)</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="n">bmc</span><span class="o">.</span><span class="n">orthogonalize</span><span class="p">(</span><span class="s2">&quot;BE&quot;</span><span class="p">,</span> <span class="n">train_df</span><span class="p">,</span> <span class="n">components_kept</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="n">bmc</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">training_options</span><span class="o">=</span><span class="p">{</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="s2">&quot;iterations&quot;</span><span class="p">:</span> <span class="mi">50000</span><span class="p">,</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="s2">&quot;burn&quot;</span><span class="p">:</span> <span class="mi">5000</span><span class="p">,</span>            <span class="c1"># burn-in for the Metropolis-Hastings step</span>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="p">})</span>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MH acceptance rate: </span><span class="si">{</span><span class="n">bmc</span><span class="o">.</span><span class="n">mh_acceptance_rate_</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a><span class="c1"># predict() and evaluate() automatically use per-point variances</span>
+<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="n">rndm_m</span><span class="p">,</span> <span class="n">lower_df</span><span class="p">,</span> <span class="n">median_df</span><span class="p">,</span> <span class="n">upper_df</span> <span class="o">=</span> <span class="n">bmc</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="s2">&quot;BE&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p>The coefficients <span class="arithmatex">\(b\)</span> are still updated with conjugate Gibbs steps; the
+variance parameters <span class="arithmatex">\((\alpha, \beta, \dots)\)</span> are sampled with a
+positivity-constrained Metropolis-Hastings step under Gamma priors. During
+burn-in the proposal covariance is automatically rescaled toward a target
+acceptance rate of 25% (and then frozen), so the defaults work across data
+scales. All tuning knobs can be overridden through <code>training_options</code>
+(<code>proposal_scales</code>, <code>init_params</code>, <code>prior_spec</code>, <code>adapt_proposal</code>,
+<code>target_acceptance</code>). Check <code>bmc.mh_acceptance_rate_</code> after training; if it
+is far from ~25%, increase <code>burn</code> or set <code>proposal_scales</code> manually.</p>
+<h3 id="reproducibility">Reproducibility</h3>
+<p>All pybmc randomness — MCMC training and posterior-predictive draws — is
+driven by a single seeded package-wide generator (<code>pybmc.DEFAULT_SEED</code>), so a
+fresh session that performs the same sequence of calls reproduces end to end.
+<code>predict()</code>/<code>evaluate()</code> additionally default to a fixed per-call seed so
+repeated calls return identical draws. To re-seed the shared generator
+mid-session, or to pin an individual training run, use:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pybmc</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">pybmc</span><span class="o">.</span><span class="n">set_seed</span><span class="p">(</span><span class="mi">12345</span><span class="p">)</span>                              <span class="c1"># re-seed the shared stream</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">bmc</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">training_options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;seed&quot;</span><span class="p">:</span> <span class="mi">42</span><span class="p">,</span> <span class="o">...</span><span class="p">})</span>      <span class="c1"># pin one training run</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">rndm_m</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">bmc</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="s2">&quot;BE&quot;</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>          <span class="c1"># draw from the shared stream</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Simplex constraint</p>
+<p>Heteroscedastic error models currently require the unconstrained weight
+mode; combining them with <code>constraint="simplex"</code> raises a <code>ValueError</code>.</p>
+</div>
+<p>To compare error models quantitatively, score the coverage curve returned by
+<code>evaluate()</code> — 0 is perfect calibration, and the diagnosis tells you whether
+intervals are too narrow (<code>underdispersed</code>) or too wide (<code>overdispersed</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pybmc</span><span class="w"> </span><span class="kn">import</span> <span class="n">coverage_quality</span><span class="p">,</span> <span class="n">diagnose_coverage_shape</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">percentiles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">101</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="k">for</span> <span class="n">error_model</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;homoscedastic&quot;</span><span class="p">,</span> <span class="s2">&quot;hetero_model_var&quot;</span><span class="p">,</span> <span class="s2">&quot;hetero_combined_linear&quot;</span><span class="p">]:</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>    <span class="n">bmc</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">training_options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;iterations&quot;</span><span class="p">:</span> <span class="mi">50000</span><span class="p">,</span> <span class="s2">&quot;error_model&quot;</span><span class="p">:</span> <span class="n">error_model</span><span class="p">})</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>    <span class="n">cov</span> <span class="o">=</span> <span class="n">bmc</span><span class="o">.</span><span class="n">evaluate</span><span class="p">()</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>    <span class="n">score</span> <span class="o">=</span> <span class="n">coverage_quality</span><span class="p">(</span><span class="n">percentiles</span><span class="p">,</span> <span class="n">cov</span><span class="p">)</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>    <span class="n">diag</span> <span class="o">=</span> <span class="n">diagnose_coverage_shape</span><span class="p">(</span><span class="n">percentiles</span><span class="p">,</span> <span class="n">cov</span><span class="p">)</span>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">error_model</span><span class="si">:</span><span class="s2">25s</span><span class="si">}</span><span class="s2"> score=</span><span class="si">{</span><span class="n">score</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2">  (</span><span class="si">{</span><span class="n">diag</span><span class="p">[</span><span class="s1">&#39;diagnosis&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+</code></pre></div>
 <h3 id="inspecting-model-weights">Inspecting Model Weights</h3>
 <p>After training, you can inspect the inferred model weights using <code>get_weights()</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Get a summary (mean, std, median per model)</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">summary</span> <span class="o">=</span> <span class="n">bmc</span><span class="o">.</span><span class="n">get_weights</span><span class="p">()</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">for</span> <span class="n">model</span><span class="p">,</span> <span class="n">mean_w</span><span class="p">,</span> <span class="n">std_w</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">&quot;models&quot;</span><span class="p">],</span> <span class="n">summary</span><span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">],</span> <span class="n">summary</span><span class="p">[</span><span class="s2">&quot;std&quot;</span><span class="p">]):</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">mean_w</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> ± </span><span class="si">{</span><span class="n">std_w</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="c1"># Get the full weight matrix (n_samples × n_models) for custom analysis</span>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="n">weight_matrix</span> <span class="o">=</span> <span class="n">bmc</span><span class="o">.</span><span class="n">get_weights</span><span class="p">(</span><span class="n">summary</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># Get a summary (mean, std, median per model)</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">summary</span> <span class="o">=</span> <span class="n">bmc</span><span class="o">.</span><span class="n">get_weights</span><span class="p">()</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="k">for</span> <span class="n">model</span><span class="p">,</span> <span class="n">mean_w</span><span class="p">,</span> <span class="n">std_w</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">&quot;models&quot;</span><span class="p">],</span> <span class="n">summary</span><span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">],</span> <span class="n">summary</span><span class="p">[</span><span class="s2">&quot;std&quot;</span><span class="p">]):</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">mean_w</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> ± </span><span class="si">{</span><span class="n">std_w</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="c1"># Get the full weight matrix (n_samples × n_models) for custom analysis</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="n">weight_matrix</span> <span class="o">=</span> <span class="n">bmc</span><span class="o">.</span><span class="n">get_weights</span><span class="p">(</span><span class="n">summary</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </code></pre></div>
 <p>In simplex mode, every row of the weight matrix is guaranteed to satisfy
 <span class="arithmatex">\(w_k \ge 0\)</span> and <span class="arithmatex">\(\sum_k w_k = 1\)</span>.</p>
@@ -891,12 +1046,12 @@ partially cancel out biased models.</p>
 <li>Quantify uncertainty for all predictions</li>
 </ul>
 </div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># Make predictions with uncertainty quantification</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="c1"># Predictions are made for ALL domain points, including those without truth data</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">rndm_m</span><span class="p">,</span> <span class="n">lower_df</span><span class="p">,</span> <span class="n">median_df</span><span class="p">,</span> <span class="n">upper_df</span> <span class="o">=</span> <span class="n">bmc</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="s2">&quot;BE&quot;</span><span class="p">)</span>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="c1"># Display the first 5 rows of the median predictions</span>
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">median_df</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># Make predictions with uncertainty quantification</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="c1"># Predictions are made for ALL domain points, including those without truth data</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="n">rndm_m</span><span class="p">,</span> <span class="n">lower_df</span><span class="p">,</span> <span class="n">median_df</span><span class="p">,</span> <span class="n">upper_df</span> <span class="o">=</span> <span class="n">bmc</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="s2">&quot;BE&quot;</span><span class="p">)</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="c1"># Display the first 5 rows of the median predictions</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">median_df</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
 </code></pre></div>
 <h2 id="5-evaluate-the-model">5. Evaluate the Model</h2>
 <p>Finally, we can evaluate the performance of our model combination using the <code>evaluate</code> method. This calculates the coverage of the credible intervals, which tells us how often the true values fall within the predicted intervals.</p>
@@ -904,70 +1059,70 @@ partially cancel out biased models.</p>
 <p class="admonition-title">Evaluation on Training Data</p>
 <p>The <code>evaluate</code> method only evaluates on data points where truth values are available. Points with NaN truth values are automatically excluded from the evaluation.</p>
 </div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Evaluate the model&#39;s coverage</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">coverage_results</span> <span class="o">=</span> <span class="n">bmc</span><span class="o">.</span><span class="n">evaluate</span><span class="p">()</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="c1"># Print the coverage for a 95% credible interval</span>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Coverage for 95% credible interval: </span><span class="si">{</span><span class="n">coverage_results</span><span class="p">[</span><span class="mi">19</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># Evaluate the model&#39;s coverage</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="n">coverage_results</span> <span class="o">=</span> <span class="n">bmc</span><span class="o">.</span><span class="n">evaluate</span><span class="p">()</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="c1"># Print the coverage for a 95% credible interval</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Coverage for 95% credible interval: </span><span class="si">{</span><span class="n">coverage_results</span><span class="p">[</span><span class="mi">19</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="complete-example-truth-data-with-smaller-domain">Complete Example: Truth Data with Smaller Domain</h2>
 <p>Here's a complete example demonstrating the workflow when truth/experimental data is only available for a subset of domain points:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pybmc.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pybmc.bmc</span><span class="w"> </span><span class="kn">import</span> <span class="n">BayesianModelCombination</span>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="c1"># Initialize dataset</span>
-<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="n">dataset</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">data_path</span><span class="o">=</span><span class="s2">&quot;pybmc/selected_data.h5&quot;</span><span class="p">)</span>
-<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
-<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="c1"># Load data with truth_column_name parameter</span>
-<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="c1"># This allows AME2020 (truth) to have fewer domain points than the models</span>
-<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="n">data_dict</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">load_data</span><span class="p">(</span>
-<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>    <span class="n">models</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;FRDM12&quot;</span><span class="p">,</span> <span class="s2">&quot;HFB24&quot;</span><span class="p">,</span> <span class="s2">&quot;D1M&quot;</span><span class="p">,</span> <span class="s2">&quot;UNEDF1&quot;</span><span class="p">,</span> <span class="s2">&quot;BCPM&quot;</span><span class="p">,</span> <span class="s2">&quot;AME2020&quot;</span><span class="p">],</span>
-<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>    <span class="n">keys</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;BE&quot;</span><span class="p">],</span>
-<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>    <span class="n">domain_keys</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;N&quot;</span><span class="p">,</span> <span class="s2">&quot;Z&quot;</span><span class="p">],</span>
-<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>    <span class="n">truth_column_name</span><span class="o">=</span><span class="s2">&quot;AME2020&quot;</span>  <span class="c1"># Identifies the truth data</span>
-<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="p">)</span>
-<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>
-<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="c1"># Check the data structure</span>
-<a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a><span class="n">df</span> <span class="o">=</span> <span class="n">data_dict</span><span class="p">[</span><span class="s2">&quot;BE&quot;</span><span class="p">]</span>
-<a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total domain points: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Points with truth data: </span><span class="si">{</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;AME2020&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Points without truth data: </span><span class="si">{</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;AME2020&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a>
-<a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a><span class="c1"># Filter to only rows with truth data for training</span>
-<a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a><span class="n">df_with_truth</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;AME2020&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-<a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a>
-<a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a><span class="c1"># Split the data (only using points with truth)</span>
-<a id="__codelineno-12-27" name="__codelineno-12-27" href="#__codelineno-12-27"></a><span class="n">train_df</span><span class="p">,</span> <span class="n">val_df</span><span class="p">,</span> <span class="n">test_df</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">split_data</span><span class="p">(</span>
-<a id="__codelineno-12-28" name="__codelineno-12-28" href="#__codelineno-12-28"></a>    <span class="p">{</span><span class="s2">&quot;BE&quot;</span><span class="p">:</span> <span class="n">df_with_truth</span><span class="p">},</span>
-<a id="__codelineno-12-29" name="__codelineno-12-29" href="#__codelineno-12-29"></a>    <span class="s2">&quot;BE&quot;</span><span class="p">,</span>
-<a id="__codelineno-12-30" name="__codelineno-12-30" href="#__codelineno-12-30"></a>    <span class="n">splitting_algorithm</span><span class="o">=</span><span class="s2">&quot;random&quot;</span><span class="p">,</span>
-<a id="__codelineno-12-31" name="__codelineno-12-31" href="#__codelineno-12-31"></a>    <span class="n">train_size</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
-<a id="__codelineno-12-32" name="__codelineno-12-32" href="#__codelineno-12-32"></a>    <span class="n">val_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
-<a id="__codelineno-12-33" name="__codelineno-12-33" href="#__codelineno-12-33"></a>    <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
-<a id="__codelineno-12-34" name="__codelineno-12-34" href="#__codelineno-12-34"></a><span class="p">)</span>
-<a id="__codelineno-12-35" name="__codelineno-12-35" href="#__codelineno-12-35"></a>
-<a id="__codelineno-12-36" name="__codelineno-12-36" href="#__codelineno-12-36"></a><span class="c1"># Initialize BMC (models_list excludes the truth column)</span>
-<a id="__codelineno-12-37" name="__codelineno-12-37" href="#__codelineno-12-37"></a><span class="n">bmc</span> <span class="o">=</span> <span class="n">BayesianModelCombination</span><span class="p">(</span>
-<a id="__codelineno-12-38" name="__codelineno-12-38" href="#__codelineno-12-38"></a>    <span class="n">models_list</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;FRDM12&quot;</span><span class="p">,</span> <span class="s2">&quot;HFB24&quot;</span><span class="p">,</span> <span class="s2">&quot;D1M&quot;</span><span class="p">,</span> <span class="s2">&quot;UNEDF1&quot;</span><span class="p">,</span> <span class="s2">&quot;BCPM&quot;</span><span class="p">],</span>
-<a id="__codelineno-12-39" name="__codelineno-12-39" href="#__codelineno-12-39"></a>    <span class="n">data_dict</span><span class="o">=</span><span class="n">data_dict</span><span class="p">,</span>
-<a id="__codelineno-12-40" name="__codelineno-12-40" href="#__codelineno-12-40"></a>    <span class="n">truth_column_name</span><span class="o">=</span><span class="s2">&quot;AME2020&quot;</span><span class="p">,</span>
-<a id="__codelineno-12-41" name="__codelineno-12-41" href="#__codelineno-12-41"></a><span class="p">)</span>
-<a id="__codelineno-12-42" name="__codelineno-12-42" href="#__codelineno-12-42"></a>
-<a id="__codelineno-12-43" name="__codelineno-12-43" href="#__codelineno-12-43"></a><span class="c1"># Orthogonalize and train on the subset with truth data</span>
-<a id="__codelineno-12-44" name="__codelineno-12-44" href="#__codelineno-12-44"></a><span class="n">bmc</span><span class="o">.</span><span class="n">orthogonalize</span><span class="p">(</span><span class="s2">&quot;BE&quot;</span><span class="p">,</span> <span class="n">train_df</span><span class="p">,</span> <span class="n">components_kept</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-<a id="__codelineno-12-45" name="__codelineno-12-45" href="#__codelineno-12-45"></a><span class="n">bmc</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">training_options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;iterations&quot;</span><span class="p">:</span> <span class="mi">50000</span><span class="p">})</span>
-<a id="__codelineno-12-46" name="__codelineno-12-46" href="#__codelineno-12-46"></a>
-<a id="__codelineno-12-47" name="__codelineno-12-47" href="#__codelineno-12-47"></a><span class="c1"># Make predictions for ALL domain points</span>
-<a id="__codelineno-12-48" name="__codelineno-12-48" href="#__codelineno-12-48"></a><span class="c1"># This includes points where AME2020 (truth) is NaN</span>
-<a id="__codelineno-12-49" name="__codelineno-12-49" href="#__codelineno-12-49"></a><span class="n">rndm_m</span><span class="p">,</span> <span class="n">lower_df</span><span class="p">,</span> <span class="n">median_df</span><span class="p">,</span> <span class="n">upper_df</span> <span class="o">=</span> <span class="n">bmc</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="s2">&quot;BE&quot;</span><span class="p">)</span>
-<a id="__codelineno-12-50" name="__codelineno-12-50" href="#__codelineno-12-50"></a>
-<a id="__codelineno-12-51" name="__codelineno-12-51" href="#__codelineno-12-51"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Predictions made for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">median_df</span><span class="p">)</span><span class="si">}</span><span class="s2"> domain points&quot;</span><span class="p">)</span>
-<a id="__codelineno-12-52" name="__codelineno-12-52" href="#__codelineno-12-52"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;This includes both points with and without experimental truth data!&quot;</span><span class="p">)</span>
-<a id="__codelineno-12-53" name="__codelineno-12-53" href="#__codelineno-12-53"></a>
-<a id="__codelineno-12-54" name="__codelineno-12-54" href="#__codelineno-12-54"></a><span class="c1"># Evaluate coverage (only on points with truth data)</span>
-<a id="__codelineno-12-55" name="__codelineno-12-55" href="#__codelineno-12-55"></a><span class="n">coverage_results</span> <span class="o">=</span> <span class="n">bmc</span><span class="o">.</span><span class="n">evaluate</span><span class="p">()</span>
-<a id="__codelineno-12-56" name="__codelineno-12-56" href="#__codelineno-12-56"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Coverage for 95% credible interval: </span><span class="si">{</span><span class="n">coverage_results</span><span class="p">[</span><span class="mi">19</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pybmc.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pybmc.bmc</span><span class="w"> </span><span class="kn">import</span> <span class="n">BayesianModelCombination</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="c1"># Initialize dataset</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="n">dataset</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">data_path</span><span class="o">=</span><span class="s2">&quot;pybmc/selected_data.h5&quot;</span><span class="p">)</span>
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="c1"># Load data with truth_column_name parameter</span>
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="c1"># This allows AME2020 (truth) to have fewer domain points than the models</span>
+<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="n">data_dict</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">load_data</span><span class="p">(</span>
+<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>    <span class="n">models</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;FRDM12&quot;</span><span class="p">,</span> <span class="s2">&quot;HFB24&quot;</span><span class="p">,</span> <span class="s2">&quot;D1M&quot;</span><span class="p">,</span> <span class="s2">&quot;UNEDF1&quot;</span><span class="p">,</span> <span class="s2">&quot;BCPM&quot;</span><span class="p">,</span> <span class="s2">&quot;AME2020&quot;</span><span class="p">],</span>
+<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>    <span class="n">keys</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;BE&quot;</span><span class="p">],</span>
+<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a>    <span class="n">domain_keys</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;N&quot;</span><span class="p">,</span> <span class="s2">&quot;Z&quot;</span><span class="p">],</span>
+<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a>    <span class="n">truth_column_name</span><span class="o">=</span><span class="s2">&quot;AME2020&quot;</span>  <span class="c1"># Identifies the truth data</span>
+<a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="p">)</span>
+<a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a>
+<a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a><span class="c1"># Check the data structure</span>
+<a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a><span class="n">df</span> <span class="o">=</span> <span class="n">data_dict</span><span class="p">[</span><span class="s2">&quot;BE&quot;</span><span class="p">]</span>
+<a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total domain points: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-15-20" name="__codelineno-15-20" href="#__codelineno-15-20"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Points with truth data: </span><span class="si">{</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;AME2020&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-15-21" name="__codelineno-15-21" href="#__codelineno-15-21"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Points without truth data: </span><span class="si">{</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;AME2020&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-15-22" name="__codelineno-15-22" href="#__codelineno-15-22"></a>
+<a id="__codelineno-15-23" name="__codelineno-15-23" href="#__codelineno-15-23"></a><span class="c1"># Filter to only rows with truth data for training</span>
+<a id="__codelineno-15-24" name="__codelineno-15-24" href="#__codelineno-15-24"></a><span class="n">df_with_truth</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;AME2020&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<a id="__codelineno-15-25" name="__codelineno-15-25" href="#__codelineno-15-25"></a>
+<a id="__codelineno-15-26" name="__codelineno-15-26" href="#__codelineno-15-26"></a><span class="c1"># Split the data (only using points with truth)</span>
+<a id="__codelineno-15-27" name="__codelineno-15-27" href="#__codelineno-15-27"></a><span class="n">train_df</span><span class="p">,</span> <span class="n">val_df</span><span class="p">,</span> <span class="n">test_df</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">split_data</span><span class="p">(</span>
+<a id="__codelineno-15-28" name="__codelineno-15-28" href="#__codelineno-15-28"></a>    <span class="p">{</span><span class="s2">&quot;BE&quot;</span><span class="p">:</span> <span class="n">df_with_truth</span><span class="p">},</span>
+<a id="__codelineno-15-29" name="__codelineno-15-29" href="#__codelineno-15-29"></a>    <span class="s2">&quot;BE&quot;</span><span class="p">,</span>
+<a id="__codelineno-15-30" name="__codelineno-15-30" href="#__codelineno-15-30"></a>    <span class="n">splitting_algorithm</span><span class="o">=</span><span class="s2">&quot;random&quot;</span><span class="p">,</span>
+<a id="__codelineno-15-31" name="__codelineno-15-31" href="#__codelineno-15-31"></a>    <span class="n">train_size</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
+<a id="__codelineno-15-32" name="__codelineno-15-32" href="#__codelineno-15-32"></a>    <span class="n">val_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+<a id="__codelineno-15-33" name="__codelineno-15-33" href="#__codelineno-15-33"></a>    <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+<a id="__codelineno-15-34" name="__codelineno-15-34" href="#__codelineno-15-34"></a><span class="p">)</span>
+<a id="__codelineno-15-35" name="__codelineno-15-35" href="#__codelineno-15-35"></a>
+<a id="__codelineno-15-36" name="__codelineno-15-36" href="#__codelineno-15-36"></a><span class="c1"># Initialize BMC (models_list excludes the truth column)</span>
+<a id="__codelineno-15-37" name="__codelineno-15-37" href="#__codelineno-15-37"></a><span class="n">bmc</span> <span class="o">=</span> <span class="n">BayesianModelCombination</span><span class="p">(</span>
+<a id="__codelineno-15-38" name="__codelineno-15-38" href="#__codelineno-15-38"></a>    <span class="n">models_list</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;FRDM12&quot;</span><span class="p">,</span> <span class="s2">&quot;HFB24&quot;</span><span class="p">,</span> <span class="s2">&quot;D1M&quot;</span><span class="p">,</span> <span class="s2">&quot;UNEDF1&quot;</span><span class="p">,</span> <span class="s2">&quot;BCPM&quot;</span><span class="p">],</span>
+<a id="__codelineno-15-39" name="__codelineno-15-39" href="#__codelineno-15-39"></a>    <span class="n">data_dict</span><span class="o">=</span><span class="n">data_dict</span><span class="p">,</span>
+<a id="__codelineno-15-40" name="__codelineno-15-40" href="#__codelineno-15-40"></a>    <span class="n">truth_column_name</span><span class="o">=</span><span class="s2">&quot;AME2020&quot;</span><span class="p">,</span>
+<a id="__codelineno-15-41" name="__codelineno-15-41" href="#__codelineno-15-41"></a><span class="p">)</span>
+<a id="__codelineno-15-42" name="__codelineno-15-42" href="#__codelineno-15-42"></a>
+<a id="__codelineno-15-43" name="__codelineno-15-43" href="#__codelineno-15-43"></a><span class="c1"># Orthogonalize and train on the subset with truth data</span>
+<a id="__codelineno-15-44" name="__codelineno-15-44" href="#__codelineno-15-44"></a><span class="n">bmc</span><span class="o">.</span><span class="n">orthogonalize</span><span class="p">(</span><span class="s2">&quot;BE&quot;</span><span class="p">,</span> <span class="n">train_df</span><span class="p">,</span> <span class="n">components_kept</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<a id="__codelineno-15-45" name="__codelineno-15-45" href="#__codelineno-15-45"></a><span class="n">bmc</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">training_options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;iterations&quot;</span><span class="p">:</span> <span class="mi">50000</span><span class="p">})</span>
+<a id="__codelineno-15-46" name="__codelineno-15-46" href="#__codelineno-15-46"></a>
+<a id="__codelineno-15-47" name="__codelineno-15-47" href="#__codelineno-15-47"></a><span class="c1"># Make predictions for ALL domain points</span>
+<a id="__codelineno-15-48" name="__codelineno-15-48" href="#__codelineno-15-48"></a><span class="c1"># This includes points where AME2020 (truth) is NaN</span>
+<a id="__codelineno-15-49" name="__codelineno-15-49" href="#__codelineno-15-49"></a><span class="n">rndm_m</span><span class="p">,</span> <span class="n">lower_df</span><span class="p">,</span> <span class="n">median_df</span><span class="p">,</span> <span class="n">upper_df</span> <span class="o">=</span> <span class="n">bmc</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="s2">&quot;BE&quot;</span><span class="p">)</span>
+<a id="__codelineno-15-50" name="__codelineno-15-50" href="#__codelineno-15-50"></a>
+<a id="__codelineno-15-51" name="__codelineno-15-51" href="#__codelineno-15-51"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Predictions made for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">median_df</span><span class="p">)</span><span class="si">}</span><span class="s2"> domain points&quot;</span><span class="p">)</span>
+<a id="__codelineno-15-52" name="__codelineno-15-52" href="#__codelineno-15-52"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;This includes both points with and without experimental truth data!&quot;</span><span class="p">)</span>
+<a id="__codelineno-15-53" name="__codelineno-15-53" href="#__codelineno-15-53"></a>
+<a id="__codelineno-15-54" name="__codelineno-15-54" href="#__codelineno-15-54"></a><span class="c1"># Evaluate coverage (only on points with truth data)</span>
+<a id="__codelineno-15-55" name="__codelineno-15-55" href="#__codelineno-15-55"></a><span class="n">coverage_results</span> <span class="o">=</span> <span class="n">bmc</span><span class="o">.</span><span class="n">evaluate</span><span class="p">()</span>
+<a id="__codelineno-15-56" name="__codelineno-15-56" href="#__codelineno-15-56"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Coverage for 95% credible interval: </span><span class="si">{</span><span class="n">coverage_results</span><span class="p">[</span><span class="mi">19</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
 </code></pre></div>
 
 

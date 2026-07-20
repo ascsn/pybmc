@@ -466,9 +466,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#standard-gibbs-sampler" class="md-nav__link">
+  <a href="#standard-unconstrained-sampler" class="md-nav__link">
     <span class="md-ellipsis">
-      Standard Gibbs Sampler
+      Standard (Unconstrained) Sampler
     </span>
   </a>
   
@@ -656,9 +656,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#standard-gibbs-sampler" class="md-nav__link">
+  <a href="#standard-unconstrained-sampler" class="md-nav__link">
     <span class="md-ellipsis">
-      Standard Gibbs Sampler
+      Standard (Unconstrained) Sampler
     </span>
   </a>
   
@@ -751,8 +751,9 @@ X = U S V^T
 <p>By keeping only the first <span class="arithmatex">\(m \ll K\)</span> singular values and vectors, we can create a low-rank approximation of <span class="arithmatex">\(X\)</span> that captures the most important variations in the model predictions while filtering out noise and redundancy. This results in a more stable and robust inference process.</p>
 <h2 id="gibbs-sampling-for-inference">Gibbs Sampling for Inference</h2>
 <p><code>pybmc</code> uses Gibbs sampling to draw samples from the posterior distribution of the model weights and other parameters. Gibbs sampling is a Markov Chain Monte Carlo (MCMC) algorithm that iteratively samples from the conditional distribution of each parameter given the current values of all other parameters.</p>
-<h3 id="standard-gibbs-sampler">Standard Gibbs Sampler</h3>
-<p>The standard Gibbs sampler in <code>pybmc</code> assumes a Gaussian likelihood and conjugate priors for the model parameters. The algorithm iteratively samples from the full conditional distributions of the regression coefficients (related to the model weights) and the error variance.</p>
+<h3 id="standard-unconstrained-sampler">Standard (Unconstrained) Sampler</h3>
+<p>The unconstrained sampler in <code>pybmc</code> assumes the Gaussian likelihood <span class="arithmatex">\(y_i \sim \mathcal{N}(X_i \cdot b,\, \sigma_i^2)\)</span> where the per-point variance is linear in a basis of heteroscedasticity metrics, <span class="arithmatex">\(\sigma_i^2 = \phi_i \cdot \theta\)</span>. Every error model shares this one likelihood: the homoscedastic model is simply the case where the basis <span class="arithmatex">\(\phi\)</span> is the constant term alone, so <span class="arithmatex">\(\theta = [\sigma^2]\)</span> is a single constant variance. All variance parameters are sampled on the <span class="arithmatex">\(\sigma^2\)</span> scale.</p>
+<p>The regression coefficients <span class="arithmatex">\(b\)</span> are updated with a conjugate (weighted least-squares) Gibbs step; the variance parameters <span class="arithmatex">\(\theta\)</span> are updated with a positivity-constrained random-walk Metropolis-Hastings step under Gamma priors. Because <span class="arithmatex">\(\theta\)</span> stays strictly positive and the training-time basis is non-negative with a leading constant term, every <span class="arithmatex">\(\sigma_i^2\)</span> is positive by construction and no variance flooring is applied during sampling.</p>
 <h3 id="gibbs-sampler-with-simplex-constraints">Gibbs Sampler with Simplex Constraints</h3>
 <p><code>pybmc</code> also provides a Gibbs sampler that enforces simplex constraints on the model weights (i.e., <span class="arithmatex">\(\sum w_k = 1\)</span> and <span class="arithmatex">\(w_k \ge 0\)</span>). This is achieved by performing a random walk in the space of the transformed parameters and using a Metropolis-Hastings step to accept or reject proposals that fall outside the valid simplex region.</p>
 <h4 id="when-to-use-each-mode">When to Use Each Mode</h4>
@@ -788,8 +789,8 @@ X = U S V^T
 <li><strong>Proposes</strong> a new coefficient vector <span class="arithmatex">\(\boldsymbol{\beta}^*\)</span> from a multivariate normal centered on the current value.</li>
 <li><strong>Projects</strong> the proposal to weight space via <span class="arithmatex">\(\boldsymbol{\omega}^* = \boldsymbol{\beta}^* \hat{V} + \frac{1}{K}\)</span>.</li>
 <li><strong>Rejects</strong> the proposal if any <span class="arithmatex">\(\omega_k^* &lt; 0\)</span> (the sum-to-one constraint is automatically satisfied by the SVD structure and the <span class="arithmatex">\(\frac{1}{K}\)</span> offset).</li>
-<li><strong>Accepts</strong> valid proposals with probability <span class="arithmatex">\(\min\!\bigl(1,\; \exp\!\bigl[\bigl(\ell(\boldsymbol{\beta}^*) - \ell(\boldsymbol{\beta})\bigr) / \sigma^2\bigr]\bigr)\)</span>, where <span class="arithmatex">\(\ell\)</span> is the log-likelihood.</li>
-<li><strong>Samples</strong> the error variance <span class="arithmatex">\(\sigma^2\)</span> from its inverse-gamma full conditional.</li>
+<li><strong>Accepts</strong> valid proposals with the Gaussian likelihood ratio <span class="arithmatex">\(\min\!\bigl(1,\; \exp\!\bigl[-\bigl(\mathrm{SSR}(\boldsymbol{\beta}^*) - \mathrm{SSR}(\boldsymbol{\beta})\bigr) / (2\sigma^2)\bigr]\bigr)\)</span>, where <span class="arithmatex">\(\mathrm{SSR}\)</span> is the residual sum of squares — the same homoscedastic Gaussian likelihood used by the unconstrained sampler.</li>
+<li><strong>Samples</strong> the error variance <span class="arithmatex">\(\sigma^2\)</span> from its inverse-gamma full conditional (retained samples store <span class="arithmatex">\(\sigma^2\)</span>, matching the variance-scale parametrization of all other samplers).</li>
 </ol>
 <p>The <code>burn</code> parameter controls the number of burn-in iterations discarded before collecting samples, and the <code>stepsize</code> parameter scales the proposal covariance matrix to tune the acceptance rate.</p>
 
