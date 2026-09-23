@@ -5,8 +5,6 @@ https://joss.readthedocs.io/en/latest/example_paper.html
 ---
 title: "pybmc: A Python package for Bayesian model combination"
 
-This is a test edit to see the artifact (pdf paper)
-
 tags:
   - Python
   - Bayesian inference
@@ -45,6 +43,9 @@ bibliography: paper.bib
 
 # Summary
 Bayesian model combination (BMC) provides a principled framework for combining predictions from multiple models while quantifying uncertainty. Unlike simple averaging methods, BMC explicitly accounts for correlations among models and infers optimal model weights through Bayesian inference, producing predictions with calibrated uncertainty estimates.
+
+
+This is a test edit to see the artifact (pdf paper)
 
 The pybmc package implements this methodology in Python, allowing researchers to apply BMC to ensembles of predictive models defined on a shared domain. The package is designed for applications in which different theoretical or computational models produce systematically different predictions.
 
