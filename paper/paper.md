@@ -11,18 +11,23 @@ authors:
   - name: Troy Dasher
     orcid: 0009-0001-4814-2185
     affiliation: "1, 2"
+    corresponding: true
+    note: "Email: [dashert@msu.edu](mailto:dashert@msu.edu)"
 
   - name: Pablo Giuliani
     orcid: 0000-0002-8145-0745
     affiliation: "1"
+    note: "Email: [giulia27@msu.edu](mailto:giulia27@msu.edu)"
 
   - name: Kyle Godbey
     orcid: 0000-0003-0622-3646
     affiliation: "1"
-    
+    note: "Email: [godbey@frib.msu.edu](mailto:godbey@frib.msu.edu)"
+
   - name: An Le
-    corresponding: true
     affiliation: "1, 2"
+    note: "Email: [lean2@msu.edu](mailto:lean2@msu.edu)"
+
 
 affiliations:
   - name: Facility for Rare Isotope Beams, Michigan State University, East Lansing, MI 48824, USA
