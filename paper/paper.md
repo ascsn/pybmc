@@ -5,6 +5,8 @@ https://joss.readthedocs.io/en/latest/example_paper.html
 ---
 title: "pybmc: A Python package for Bayesian model combination"
 
+This is a test edit to see the artifact (pdf paper)
+
 tags:
   - Python
   - Bayesian inference
