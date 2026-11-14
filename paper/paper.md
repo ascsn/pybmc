@@ -9,6 +9,9 @@ tags:
 
 authors:
   - name: Pranav Agarwal
+    orcid: 0009-0000-1139-6854
+    affiliation: "1, 2"
+    note: "Email: agarw132@msu.edu"
     
   - name: Troy Dasher
     orcid: 0009-0001-4814-2185
@@ -109,9 +112,9 @@ Furthermore, pybmc is organized around two core classes that separate data manag
 
 The `Dataset` class (module `pybmc.data`) is responsible for all data loading, organization, and preprocessing, allowing these operations to exist separately from the Bayesian inference procedure. The class supports input model predictions in HDF5 or CSV format and synchronizes them over a common domain, allowing enabling the combination of models with different prediction coverages. Experimental observations, or `truth_column_name`, are incorporated through a left join, preserving the full synchronized model domain even when experimental data are available only for a subset. This is particularly important for applications in which theoretical predictions extend beyond experimentally measured regions. The class also supports domain-specific filtering and the construction of training, validation, and testing sets, providing a consistent data structure for subsequent inference.
 
-The `BayesianModelCombination` class (module `pybmc.bmc`) implements the BMC workflow. It operates on the synchronized DataFrames produced by `Dataset` and keeps track of the list of models to be combined and the column containing the experimental truth. The class exposes three main operations: `orthogonalize`, which constructs an orthogonal basis of model differences by applying singular value decomposition (SVD) to centered model predictions; `train`, which performs Gibbs sampling on the truncated SVD coefficients to obtain posterior samples of the combination weights and residual uncertainty; and `predict` / `evaluate`, which turn those samples into posterior predictive draws, credible intervals, and coverage diagnostics.
+The `BayesianModelCombination` class (module `pybmc.bmc`) implements the BMC workflow. It operates on the synchronized DataFrames and keeps track of the list of models to be combined and the column containing the experimental truth. The class exposes three main operations: `orthogonalize`, which constructs an orthogonal basis of model differences by applying singular value decomposition (SVD) to centered model predictions; `train`, which performs Gibbs sampling on the truncated SVD coefficients to obtain posterior samples of the combination weights and residual uncertainty; and `predict` / `evaluate`, which turn those samples into posterior predictive draws, credible intervals, and coverage diagnostics.
 
-Low‑level numerical routines are factored into the `pybmc.inference_utils` and `pybmc.sampling_utils` modules. The former provides SVD post‑processing (`USVt_hat_extraction`) and a Gibbs sampler for Bayesian linear regression, while the latter provides utilities to turn posterior samples into predictive draws and credible intervals (`rndm_m_random_calculator`) and to compute coverage statistics (`coverage`). Keeping these routines outside the main classes keeps the public API small and makes it straightforward to swap or extend samplers and diagnostic tools without altering the high‑level workflow.
+Underlying numerical routines are factored into the `pybmc.inference_utils` and `pybmc.sampling_utils` modules. The former provides SVD post‑processing (`USVt_hat_extraction`) and a Gibbs sampler for Bayesian linear regression, while the latter provides utilities to turn posterior samples into predictive draws and credible intervals (`rndm_m_random_calculator`) and to compute coverage statistics (`coverage`). Keeping these routines outside the main classes keeps the public API small and makes it straightforward to swap or extend samplers and diagnostic tools without altering the high‑level workflow.
 
 More detailed tutorials, additional examples, and a complete API reference are available in the online documentation:
 
