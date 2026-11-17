@@ -11,7 +11,7 @@ authors:
   - name: Pranav Agarwal
     orcid: 0009-0000-1139-6854
     affiliation: "1, 2"
-    note: "Email: agarw132@msu.edu"
+    note: "Email: [agarw132@msu.edu](mailto:agarw132@msu.edu)"
     
   - name: Troy Dasher
     orcid: 0009-0001-4814-2185
@@ -32,11 +32,12 @@ authors:
   - name: Bailey Knight
     orcid: 0009-0004-6777-1034
     affiliation: "1, 2"
-    note: "Email: [knight@frib.msu.edu]"
+    note: "Email: [knight@frib.msu.edu](mailto:knight@frib.msu.edu)"
 
   - name: Sudhanva Lalit
     orcid: 0000-0001-7758-492X
     affiliation: "1"
+    note: "Email: [lalit@frib.msu.edu](mailto:lalit@frib.msu.edu)"
 
   - name: An Le
     affiliation: "1, 2"
@@ -49,14 +50,14 @@ affiliations:
   - name: Department of Physics and Astronomy, Michigan State University, East Lansing, MI 48824, USA
     index: 2
 
-date: 2026-01-21
+date: 2026-11-17
 
 bibliography: paper.bib
 ---
 
 
 # Summary
-Bayesian model combination (BMC) provides a framework for combining predictions from multiple models while quantifying uncertainty. Unlike Bayesian averaging methods, BMC explicitly accounts for correlations among models and infers optimal model weights through Bayesian inference, producing predictions with calibrated uncertainty estimates.
+Bayesian model combination (BMC) provides a framework for combining predictions from multiple models while quantifying uncertainty. Unlike Bayesian averaging methods, BMC accounts for correlations among models by constructing an orthogonal representation of their predictions and inferring the coefficients of this representation through Bayesian inference, producing predictions with calibrated uncertainty estimates.
 
 The pybmc package implements this methodology in Python, allowing researchers to easily apply BMC to ensembles of predictive models defined on a shared domain. The package is designed for applications in which different theoretical or computational models produce systematically different predictions.
 
@@ -88,7 +89,7 @@ $f^\dagger(x; \mathbf{b}) = \phi_0(x) + \sum_{j=1}^{p} b_j \phi_j(x)$,
 
 where $\mathbf{b} = (b_1, \ldots, b_r)$ are coefficients to be inferred from data. Because each basis function $\phi_j$ is itself a linear combination of the original models, this representation is itself a (restricted) combination of the model ensemble.
 
-The relationship between the combined model and experimental observations $y_i$ is described through $y_i = f^\dagger(x_i; \mathbf{b}) + \epsilon_i$, with $\epsilon_i \sim \mathcal{N}(0, \sigma^2)$, where $\sigma$ represents the typical scale of the discrepancy between the model and the data and is inferred within the Bayesian framework. Here, we assume a constant discrepancy variance, although extensions of BMC allow this uncertainty to depend on the input domain [@Knight_2026_HeEM_BMC].
+The relationship between the combined model and experimental observations $y_i$ is described through $y_i = f^\dagger(x_i; \mathbf{b}) + \epsilon_i$, with $\epsilon_i \sim \mathcal{N}(0, \sigma^2)$, where $\sigma$ represents the typical scale of the discrepancy between the model and the data and is inferred within the Bayesian framework. Here, we assume a constant discrepancy variance, although extensions of BMC allow this uncertainty to depend on the input domain [@Knight_2026_HeEM_BMC]. This feature has since been implemented into pybmc.
 
 Given a set of observations $\mathbf{y}$, the likelihood function takes the form:
 
@@ -108,11 +109,11 @@ This formulation allows the BMC approach to reduce the effective dimensionality 
 # Software design
 pybmc is designed to exist as an open-source, user-friendly Python package that is available to the broader scientific community and can be applied to problems in various fields. To accomplish this, pybmc handles precomputed model predictions for a given quantity, allowing researchers to easily and quickly apply BMC to any problem that relies on various theoretical models. Additionally, this allows researchers to use existing calculations without modifying or rerunning the underlying simulators. This approach is useful when simulations are computationally expensive or available only as published prediction tables. 
 
-Furthermore, pybmc is organized around two core classes that separate data management from Bayesian inference, supported by small utility modules that implement the numerical algorithms. This separation allows for each class to be independently adjusted, allowing for a more seamless application of BMC to different scientific datasets.
+pybmc is organized around two core classes that separate data management from Bayesian inference, supported by small utility modules that implement the numerical algorithms. This separation allows for each class to be independently adjusted, allowing for a more seamless application of BMC to different scientific datasets.
 
-The `Dataset` class (module `pybmc.data`) is responsible for all data loading, organization, and preprocessing, allowing these operations to exist separately from the Bayesian inference procedure. The class supports input model predictions in HDF5 or CSV format and synchronizes them over a common domain, allowing enabling the combination of models with different prediction coverages. Experimental observations, or `truth_column_name`, are incorporated through a left join, preserving the full synchronized model domain even when experimental data are available only for a subset. This is particularly important for applications in which theoretical predictions extend beyond experimentally measured regions. The class also supports domain-specific filtering and the construction of training, validation, and testing sets, providing a consistent data structure for subsequent inference.
+The `Dataset` class (module `pybmc.data`) is responsible for all data loading, organization, and preprocessing, allowing these operations to exist separately from the Bayesian inference procedure. The class supports input model predictions in HDF5 or CSV format and synchronizes them over a common domain, allowing for the combination of models with different prediction coverages. Experimental observations, or `truth_column_name`, are incorporated through a left join, preserving the full synchronized model domain even when experimental data are available only for a subset. This is particularly important for applications in which theoretical predictions extend beyond experimentally measured regions. The class also supports domain-specific filtering and the construction of training, validation, and testing sets, providing a consistent data structure for subsequent inference.
 
-The `BayesianModelCombination` class (module `pybmc.bmc`) implements the BMC workflow. It operates on the synchronized DataFrames and keeps track of the list of models to be combined and the column containing the experimental truth. The class exposes three main operations: `orthogonalize`, which constructs an orthogonal basis of model differences by applying singular value decomposition (SVD) to centered model predictions; `train`, which performs Gibbs sampling on the truncated SVD coefficients to obtain posterior samples of the combination weights and residual uncertainty; and `predict` / `evaluate`, which turn those samples into posterior predictive draws, credible intervals, and coverage diagnostics.
+The `BayesianModelCombination` class (module `pybmc.bmc`) implements the BMC workflow. It operates on the synchronized DataFrames and keeps track of the list of models to be combined and the column containing the experimental truth. The class exposes three main operations. First, `orthogonalize`, which constructs an orthogonal basis of model differences by applying singular value decomposition (SVD) to centered model predictions. Second, `train`, which performs Gibbs sampling on the truncated SVD coefficients to obtain posterior samples of the combination weights and residual uncertainty. Third, `predict` / `evaluate`, which turn those samples into posterior predictive draws, credible intervals, and coverage diagnostics.
 
 Underlying numerical routines are factored into the `pybmc.inference_utils` and `pybmc.sampling_utils` modules. The former provides SVD post‑processing (`USVt_hat_extraction`) and a Gibbs sampler for Bayesian linear regression, while the latter provides utilities to turn posterior samples into predictive draws and credible intervals (`rndm_m_random_calculator`) and to compute coverage statistics (`coverage`). Keeping these routines outside the main classes keeps the public API small and makes it straightforward to swap or extend samplers and diagnostic tools without altering the high‑level workflow.
 
