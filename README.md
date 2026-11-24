@@ -12,7 +12,10 @@ pybmc is a Python package for performing Bayesian Model Combination (BMC) on var
 - **Orthogonalization**: Transform model predictions using Singular Value Decomposition (SVD)
 - **Bayesian Inference**: Perform Gibbs sampling for model combination
 - **Uncertainty Quantification**: Generate predictions with credible intervals
-- **Model Evaluation**: Calculate coverage statistics for model validation
+- **Heteroscedastic Error Models**: Let the predictive variance grow with the
+  distance from the training region and/or the disagreement among models
+- **Model Evaluation**: Calculate coverage statistics and calibration
+  diagnostics for model validation
 
 ## Installation
 
@@ -76,7 +79,7 @@ We welcome contributions! Please see our [Contribution Guidelines](docs/CONTRIBU
 
 ## License
 
-This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Citation
 
@@ -85,7 +88,7 @@ If you use pybmc in your research, please cite:
 ```bibtex
 @software{pybmc,
   title = {pybmc: Bayesian Model Combination},
-  author = {Kyle Godbey and Troy Dasher and Pablo Giuliani and An Le},
+  author = {Kyle Godbey and Troy Dasher and Pablo Giuliani and An Le and Pranav Agarwal and Sudhanva Lalit},
   year = {2025},
   publisher = {GitHub},
   journal = {GitHub repository},

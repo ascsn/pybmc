@@ -112,6 +112,186 @@ With the data prepared and the model orthogonalized, we can train the model comb
 bmc.train(training_options={"iterations": 50000, "sampler": "gibbs_sampling"})
 ```
 
+### Simplex Constraint Mode
+
+By default, `pybmc` uses an unconstrained Gibbs sampler where model weights can take
+any real value.  If you want to enforce that the weights lie on the **probability
+simplex** — meaning each weight is between 0 and 1 and the weights sum to 1 — you can
+enable the simplex constraint mode.
+
+!!! tip "When to Use Simplex Constraints"
+    Use simplex constraints when you want the model combination to behave as a
+    **proper weighted average** of the constituent models.  This is appropriate when:
+
+    - You want each model to contribute non-negatively to the prediction.
+    - The combined prediction should remain within the range spanned by the individual models.
+    - Physical interpretability of the weights matters for your application.
+
+    The unconstrained mode is more flexible and may yield better predictive performance
+    when some models systematically over- or under-predict, since negative weights can
+    partially cancel out biased models.
+
+There are two ways to enable simplex constraints:
+
+**Option 1: Set at initialization (recommended when you always want simplex)**
+
+```python
+bmc = BayesianModelCombination(
+    models_list=["FRDM12", "HFB24", "D1M", "UNEDF1", "BCPM"],
+    data_dict=data_dict,
+    truth_column_name="AME2020",
+    constraint="simplex",   # <-- weights constrained to [0, 1], sum to 1
+)
+
+bmc.orthogonalize("BE", train_df, components_kept=3)
+bmc.train(training_options={
+    "iterations": 50000,
+    "burn": 10000,        # burn-in iterations for the Metropolis step
+    "stepsize": 0.001,    # proposal step size
+})
+```
+
+**Option 2: Override per training call**
+
+```python
+# Initialize with default unconstrained mode
+bmc = BayesianModelCombination(
+    models_list=["FRDM12", "HFB24", "D1M", "UNEDF1", "BCPM"],
+    data_dict=data_dict,
+    truth_column_name="AME2020",
+)
+
+bmc.orthogonalize("BE", train_df, components_kept=3)
+
+# Override to simplex for this specific training run
+bmc.train(training_options={
+    "iterations": 50000,
+    "sampler": "simplex",
+    "burn": 10000,
+    "stepsize": 0.001,
+})
+```
+
+### Heteroscedastic Error Models
+
+By default, `pybmc` assumes **homoscedastic** noise: a single constant variance
+for every data point. In practice the combined model is often much more
+uncertain far from the training data (extrapolation) or where the constituent
+models disagree. Heteroscedastic error models let the noise variance depend on
+two per-point metrics:
+
+- `pc_dist` (\(d_i\)): distance of point \(i\) from the training-data centroid in
+  principal-component space — grows away from the fitted region.
+- `model_var` (\(v_i\)): variance among the individual model predictions at
+  point \(i\) — grows where the models disagree.
+
+Both metrics are min-max normalized with the *training* values, so
+extrapolated points can exceed 1. Every error model is parametrized on the
+variance (\(\sigma^2\)) scale and shares the single likelihood
+\(y_i \sim \mathcal{N}(X_i \cdot b,\, \sigma_i^2)\); the homoscedastic model is
+simply the special case whose variance basis is the constant term alone, so
+it is trained with the same sampler rather than a separate one. The
+available error models are:
+
+| `error_model` | Variance \(\sigma_i^2\) |
+| --- | --- |
+| `homoscedastic` (default) | \(\sigma^2\) |
+| `hetero_pc_dist` | \(\alpha + \beta d_i\) |
+| `hetero_model_var` | \(\alpha + \beta v_i\) |
+| `hetero_pc_dist_quad` | \(\alpha + \beta_1 d_i + \beta_2 d_i^2\) |
+| `hetero_model_var_quad` | \(\alpha + \beta_1 v_i + \beta_2 v_i^2\) |
+| `hetero_combined_linear` | \(\alpha + \beta_d d_i + \beta_m v_i\) |
+| `hetero_combined_quadratic` | \(\alpha + \beta_{d1} d_i + \beta_{d2} d_i^2 + \beta_{m1} v_i + \beta_{m2} v_i^2\) |
+
+Select an error model at initialization (or override per training run with
+`training_options={"error_model": ...}`):
+
+```python
+bmc = BayesianModelCombination(
+    models_list=["FRDM12", "HFB24", "D1M", "UNEDF1", "BCPM"],
+    data_dict=data_dict,
+    truth_column_name="AME2020",
+    error_model="hetero_model_var",   # variance grows with model spread
+)
+
+bmc.orthogonalize("BE", train_df, components_kept=3)
+bmc.train(training_options={
+    "iterations": 50000,
+    "burn": 5000,            # burn-in for the Metropolis-Hastings step
+})
+
+print(f"MH acceptance rate: {bmc.mh_acceptance_rate_:.2%}")
+
+# predict() and evaluate() automatically use per-point variances
+rndm_m, lower_df, median_df, upper_df = bmc.predict("BE")
+```
+
+The coefficients \(b\) are still updated with conjugate Gibbs steps; the
+variance parameters \((\alpha, \beta, \dots)\) are sampled with a
+positivity-constrained Metropolis-Hastings step under Gamma priors. During
+burn-in the proposal covariance is automatically rescaled toward a target
+acceptance rate of 25% (and then frozen), so the defaults work across data
+scales. All tuning knobs can be overridden through `training_options`
+(`proposal_scales`, `init_params`, `prior_spec`, `adapt_proposal`,
+`target_acceptance`). Check `bmc.mh_acceptance_rate_` after training; if it
+is far from ~25%, increase `burn` or set `proposal_scales` manually.
+
+### Reproducibility
+
+All pybmc randomness — MCMC training and posterior-predictive draws — is
+driven by a single seeded package-wide generator (`pybmc.DEFAULT_SEED`), so a
+fresh session that performs the same sequence of calls reproduces end to end.
+`predict()`/`evaluate()` additionally default to a fixed per-call seed so
+repeated calls return identical draws. To re-seed the shared generator
+mid-session, or to pin an individual training run, use:
+
+```python
+import pybmc
+
+pybmc.set_seed(12345)                              # re-seed the shared stream
+bmc.train(training_options={"seed": 42, ...})      # pin one training run
+rndm_m, *_ = bmc.predict("BE", seed=None)          # draw from the shared stream
+```
+
+!!! note "Simplex constraint"
+    Heteroscedastic error models currently require the unconstrained weight
+    mode; combining them with `constraint="simplex"` raises a `ValueError`.
+
+To compare error models quantitatively, score the coverage curve returned by
+`evaluate()` — 0 is perfect calibration, and the diagnosis tells you whether
+intervals are too narrow (`underdispersed`) or too wide (`overdispersed`):
+
+```python
+import numpy as np
+from pybmc import coverage_quality, diagnose_coverage_shape
+
+percentiles = np.arange(0, 101, 5)
+
+for error_model in ["homoscedastic", "hetero_model_var", "hetero_combined_linear"]:
+    bmc.train(training_options={"iterations": 50000, "error_model": error_model})
+    cov = bmc.evaluate()
+    score = coverage_quality(percentiles, cov)
+    diag = diagnose_coverage_shape(percentiles, cov)
+    print(f"{error_model:25s} score={score:6.2f}  ({diag['diagnosis']})")
+```
+
+### Inspecting Model Weights
+
+After training, you can inspect the inferred model weights using `get_weights()`:
+
+```python
+# Get a summary (mean, std, median per model)
+summary = bmc.get_weights()
+for model, mean_w, std_w in zip(summary["models"], summary["mean"], summary["std"]):
+    print(f"  {model}: {mean_w:.4f} ± {std_w:.4f}")
+
+# Get the full weight matrix (n_samples × n_models) for custom analysis
+weight_matrix = bmc.get_weights(summary=False)
+```
+
+In simplex mode, every row of the weight matrix is guaranteed to satisfy
+\(w_k \ge 0\) and \(\sum_k w_k = 1\).
+
 ## 4. Make Predictions
 
 After training, we can use the `predict` method to generate predictions with uncertainty quantification. The method returns the full posterior draws, as well as DataFrames for the lower, median, and upper credible intervals.

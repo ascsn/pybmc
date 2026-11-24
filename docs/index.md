@@ -37,4 +37,4 @@ For questions or support, please open an issue on our [GitHub repository](https:
 
 ## License
 
-This project is licensed under the GPL-3.0 License - see the [License](license.md) file for details.
+This project is licensed under the MIT License - see the [License](license.md) file for details.

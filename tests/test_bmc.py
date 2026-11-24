@@ -196,5 +196,42 @@ class TestBayesianModelCombination(unittest.TestCase):
         assert all(isinstance(c, float) for c in coverage_results)
 
 
+class TestPosteriorPredictiveReproducibility(unittest.TestCase):
+    """Regression tests for the predict()/evaluate() seed threading."""
+
+    def setUp(self):
+        self.df = pd.DataFrame(
+            {
+                "x": [1, 2, 3, 4, 5, 6],
+                "truth": [11, 21, 31, 41, 51, 61],
+                "model1": [10, 20, 30, 40, 50, 60],
+                "model2": [15, 25, 35, 45, 55, 65],
+                "model3": [12, 30, 32, 43, 58, 67],
+            }
+        )
+        self.bmc = BayesianModelCombination(
+            models_list=["model1", "model2", "model3", "truth"],
+            data_dict={"target": self.df},
+            truth_column_name="truth",
+        )
+        self.bmc.orthogonalize(
+            property="target", train_df=self.df.iloc[:4], components_kept=2
+        )
+        self.bmc.train()
+
+    def test_predict_default_seed_is_reproducible(self):
+        rndm_m1, *_ = self.bmc.predict("target")
+        rndm_m2, *_ = self.bmc.predict("target")
+        np.testing.assert_array_equal(rndm_m1, rndm_m2)
+
+    def test_predict_different_seeds_give_different_draws(self):
+        rndm_m1, *_ = self.bmc.predict("target", seed=1)
+        rndm_m2, *_ = self.bmc.predict("target", seed=2)
+        self.assertFalse(np.array_equal(rndm_m1, rndm_m2))
+
+    def test_evaluate_default_seed_is_reproducible(self):
+        self.assertEqual(self.bmc.evaluate(), self.bmc.evaluate())
+
+
 if __name__ == "__main__":
     unittest.main()
