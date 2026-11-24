@@ -8,16 +8,30 @@ tags:
   - Uncertainty quantification
 
 authors:
-  - name: Pranav Agarwal
-    orcid: 0009-0000-1139-6854
-    affiliation: "1, 2"
-    note: "Email: [agarw132@msu.edu](mailto:agarw132@msu.edu)"
-    
   - name: Troy Dasher
     orcid: 0009-0001-4814-2185
     affiliation: "1, 2"
     corresponding: true
     note: "Email: [dashert@msu.edu](mailto:dashert@msu.edu)"
+    
+  - name: Pranav Agarwal
+    orcid: 0009-0000-1139-6854
+    affiliation: "1, 2"
+    note: "Email: [agarw132@msu.edu](mailto:agarw132@msu.edu)"
+
+  - name: Bailey Knight
+    orcid: 0009-0004-6777-1034
+    affiliation: "1, 2"
+    note: "Email: [knight@frib.msu.edu](mailto:knight@frib.msu.edu)"
+
+  - name: An Le
+    affiliation: "1, 2"
+    note: "Email: [lean2@msu.edu](mailto:lean2@msu.edu)"
+
+  - name: Sudhanva Lalit
+    orcid: 0000-0001-7758-492X
+    affiliation: "1"
+    note: "Email: [lalit@frib.msu.edu](mailto:lalit@frib.msu.edu)"
 
   - name: Pablo Giuliani
     orcid: 0000-0002-8145-0745
@@ -29,19 +43,6 @@ authors:
     affiliation: "1"
     note: "Email: [godbey@frib.msu.edu](mailto:godbey@frib.msu.edu)"
 
-  - name: Bailey Knight
-    orcid: 0009-0004-6777-1034
-    affiliation: "1, 2"
-    note: "Email: [knight@frib.msu.edu](mailto:knight@frib.msu.edu)"
-
-  - name: Sudhanva Lalit
-    orcid: 0000-0001-7758-492X
-    affiliation: "1"
-    note: "Email: [lalit@frib.msu.edu](mailto:lalit@frib.msu.edu)"
-
-  - name: An Le
-    affiliation: "1, 2"
-    note: "Email: [lean2@msu.edu](mailto:lean2@msu.edu)"
 
 
 affiliations:
@@ -59,7 +60,7 @@ bibliography: paper.bib
 # Summary
 Bayesian model combination (BMC) provides a framework for combining predictions from multiple models while quantifying uncertainty. Unlike Bayesian averaging methods, BMC accounts for correlations among models by constructing an orthogonal representation of their predictions and inferring the coefficients of this representation through Bayesian inference, producing predictions with calibrated uncertainty estimates.
 
-The pybmc package implements this methodology in Python, allowing researchers to easily apply BMC to ensembles of predictive models defined on a shared domain. The package is designed for applications in which different theoretical or computational models produce systematically different predictions.
+The pybmc package implements this methodology in Python, allowing researchers to easily apply BMC to ensembles of predictive models defined on a shared domain. The package is designed for applications in which different theoretical models produce systematically different predictions.
 
 By providing a lightweight and flexible interface for constructing model ensembles and generating uncertainty-aware predictions, pybmc makes BMC accessible for research workflows. While motivated by applications in nuclear physics, the approach is general and applicable to a broad range of problems involving ensemble modeling and uncertainty-aware prediction.
 
@@ -107,7 +108,7 @@ This formulation allows the BMC approach to reduce the effective dimensionality 
 
 
 # Software design
-pybmc is designed to exist as an open-source, user-friendly Python package that is available to the broader scientific community and can be applied to problems in various fields. To accomplish this, pybmc handles precomputed model predictions for a given quantity, allowing researchers to easily and quickly apply BMC to any problem that relies on various theoretical models. Additionally, this allows researchers to use existing calculations without modifying or rerunning the underlying simulators. This approach is useful when simulations are computationally expensive or available only as published prediction tables. 
+pybmc is designed to exist as an open-source, user-friendly Python package that is available to the broader scientific community and can be applied to problems in various fields. To accomplish this, pybmc handles precomputed model predictions for a given quantity, allowing researchers to easily apply BMC to problems that rely on predictions from various theoretical models. Additionally, this allows researchers to use existing calculations without modifying or rerunning the underlying simulators. This approach is useful when simulations are computationally expensive or available only as published prediction tables. 
 
 pybmc is organized around two core classes that separate data management from Bayesian inference, supported by small utility modules that implement the numerical algorithms. This separation allows for each class to be independently adjusted, allowing for a more seamless application of BMC to different scientific datasets.
 
